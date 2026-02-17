@@ -38,6 +38,22 @@ export function CafeProvider({ children }: { children: ReactNode }) {
       const activeCafes = cafes.filter((c) => c.isActive);
       if (activeCafes.length > 0) {
         setSelectedCafeId(activeCafes.length > 1 ? "all" : activeCafes[0].id);
+      } else {
+        // No active cafes, keep selection as null
+        setSelectedCafeId(null);
+      }
+    } else if (cafes && cafes.length > 0 && selectedCafeId !== null && selectedCafeId !== "all") {
+      // Check if currently selected cafe is still active
+      const activeCafes = cafes.filter((c) => c.isActive);
+      const isSelectedCafeActive = activeCafes.some((c) => c.id === selectedCafeId);
+      
+      if (!isSelectedCafeActive) {
+        // Currently selected cafe is inactive, switch to a valid selection
+        if (activeCafes.length > 0) {
+          setSelectedCafeId(activeCafes.length > 1 ? "all" : activeCafes[0].id);
+        } else {
+          setSelectedCafeId(null);
+        }
       }
     }
   }, [cafes, selectedCafeId]);

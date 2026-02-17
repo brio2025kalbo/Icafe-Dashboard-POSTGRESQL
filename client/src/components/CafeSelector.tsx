@@ -23,9 +23,16 @@ export function CafeSelector() {
     );
   }
 
+  // Ensure selectedCafeId is valid (either 'all' or an active cafe ID)
+  const isValidSelection =
+    selectedCafeId === "all" ||
+    (selectedCafeId !== null && activeCafes.some((cafe) => cafe.id === selectedCafeId));
+  
+  const displayValue = isValidSelection ? selectedCafeId?.toString() || "" : "";
+
   return (
     <Select
-      value={selectedCafeId?.toString() || ""}
+      value={displayValue}
       onValueChange={(val) => {
         setSelectedCafeId(val === "all" ? "all" : Number(val));
       }}
