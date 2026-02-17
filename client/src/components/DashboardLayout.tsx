@@ -8,6 +8,16 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
@@ -109,6 +119,7 @@ function DashboardLayoutContent({
   const isCollapsed = state === "collapsed";
   const [isResizing, setIsResizing] = useState(false);
   const [editProfileOpen, setEditProfileOpen] = useState(false);
+  const [signoutDialogOpen, setSignoutDialogOpen] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
   const activeMenuItem = menuItems.find((item) => item.path === location);
   const isMobile = useIsMobile();
@@ -242,7 +253,7 @@ function DashboardLayoutContent({
                   <span>Edit Profile</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem
-                  onClick={logout}
+                  onClick={() => setSignoutDialogOpen(true)}
                   className="cursor-pointer text-destructive focus:text-destructive"
                 >
                   <LogOut className="mr-2 h-4 w-4" />
@@ -258,6 +269,20 @@ function DashboardLayoutContent({
             />
           </SidebarFooter>
         </Sidebar>
+        <AlertDialog open={signoutDialogOpen} onOpenChange={setSignoutDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Sign out</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to sign out?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={logout}>Sign out</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
         <div
           className={`absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-primary/20 transition-colors ${isCollapsed ? "hidden" : ""}`}
           onMouseDown={() => {
