@@ -24,6 +24,7 @@ export function CafeSelector() {
   }
 
   // Ensure selectedCafeId is valid (either 'all' or an active cafe ID)
+  // If invalid, use empty string and let the context's useEffect fix it
   const isValidSelection =
     selectedCafeId === "all" ||
     (selectedCafeId !== null && activeCafes.some((cafe) => cafe.id === selectedCafeId));

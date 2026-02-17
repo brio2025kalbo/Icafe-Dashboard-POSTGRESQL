@@ -33,26 +33,29 @@ export function CafeProvider({ children }: { children: ReactNode }) {
   const [selectedCafeId, setSelectedCafeId] = useState<number | "all" | null>(null);
 
   useEffect(() => {
-    if (cafes && cafes.length > 0 && selectedCafeId === null) {
-      // Filter to only active cafes for auto-selection
+    if (cafes && cafes.length > 0) {
+      // Filter to only active cafes
       const activeCafes = cafes.filter((c) => c.isActive);
-      if (activeCafes.length > 0) {
-        setSelectedCafeId(activeCafes.length > 1 ? "all" : activeCafes[0].id);
-      } else {
-        // No active cafes, keep selection as null
-        setSelectedCafeId(null);
-      }
-    } else if (cafes && cafes.length > 0 && selectedCafeId !== null && selectedCafeId !== "all") {
-      // Check if currently selected cafe is still active
-      const activeCafes = cafes.filter((c) => c.isActive);
-      const isSelectedCafeActive = activeCafes.some((c) => c.id === selectedCafeId);
       
-      if (!isSelectedCafeActive) {
-        // Currently selected cafe is inactive, switch to a valid selection
+      if (selectedCafeId === null) {
+        // Initial selection
         if (activeCafes.length > 0) {
           setSelectedCafeId(activeCafes.length > 1 ? "all" : activeCafes[0].id);
         } else {
+          // No active cafes, keep selection as null
           setSelectedCafeId(null);
+        }
+      } else if (selectedCafeId !== "all") {
+        // Check if currently selected cafe is still active
+        const isSelectedCafeActive = activeCafes.some((c) => c.id === selectedCafeId);
+        
+        if (!isSelectedCafeActive) {
+          // Currently selected cafe is inactive, switch to a valid selection
+          if (activeCafes.length > 0) {
+            setSelectedCafeId(activeCafes.length > 1 ? "all" : activeCafes[0].id);
+          } else {
+            setSelectedCafeId(null);
+          }
         }
       }
     }
