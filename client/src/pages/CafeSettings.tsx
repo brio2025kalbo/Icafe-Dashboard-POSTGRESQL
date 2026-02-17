@@ -198,10 +198,10 @@ export default function CafeSettings() {
     setEditId(cafe.id);
   };
 
-  const handleToggleActive = (cafeId: number, currentStatus: boolean) => {
+  const handleToggleActive = (cafeId: number, isActive: boolean) => {
     toggleActiveMut.mutate({
       id: cafeId,
-      isActive: currentStatus ? 0 : 1,
+      isActive: isActive ? 1 : 0,
     });
   };
 
@@ -257,7 +257,7 @@ export default function CafeSettings() {
                     </Badge>
                     <Switch
                       checked={cafe.isActive}
-                      onCheckedChange={() => handleToggleActive(cafe.id, cafe.isActive)}
+                      onCheckedChange={(checked) => handleToggleActive(cafe.id, checked)}
                       disabled={toggleActiveMut.isPending}
                       aria-label={cafe.isActive ? "Deactivate cafe" : "Activate cafe"}
                     />
