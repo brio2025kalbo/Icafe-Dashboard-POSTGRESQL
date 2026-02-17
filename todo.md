@@ -1,0 +1,67 @@
+# Project TODO
+
+- [x] Database schema for cafes table with encrypted API keys
+- [x] Backend iCafeCloud API proxy service
+- [x] tRPC routers for cafe CRUD operations
+- [x] tRPC routers for PC status, members, sessions, products, reports
+- [x] Dark theme dashboard design with sidebar navigation
+- [x] Multi-cafe configuration interface (add/edit/remove cafes)
+- [x] Cafe selector dropdown (individual + combined overview)
+- [x] Real-time PC status dashboard with visual grid layout
+- [x] Member information panel with search and details
+- [x] Active session monitoring with time tracking
+- [x] PC control interface (reboot, shutdown, out-of-order)
+- [x] Sales and billing reports with date range filtering
+- [x] Product and pricing management interface
+- [x] Combined analytics dashboard with aggregate metrics
+- [x] Secure credential storage with encryption
+- [x] Vitest tests for backend routers
+- [x] Fix "Connection failed: Unauthenticated" error - improved error messages with IP whitelist guidance, added Test Connection in Add Cafe dialog
+- [x] Fix Reports page Error 500 - added required time_start/time_end params, rewrote frontend to handle nested data objects
+- [x] Add DateTimeRangePicker component with dual calendar, time inputs, and preset options (Today, Yesterday, Last 2/7/30 Days, This Month, Last Month, Custom)
+- [x] Integrate DateTimeRangePicker into Reports page replacing the basic date inputs
+- [x] Pass time_start and time_end from picker to the report API calls
+- [x] Add refund data to the Reports page (top-up refund breakdown, product refunds, red highlighting for active refunds)
+- [x] Add shift list backend endpoint (fetch shifts from iCafeCloud shiftList API)
+- [x] Add shift selector dropdown in Reports page per cafe card
+- [x] Filter report data by selected shift (staff name + time range) - uses shiftDetail API + log_staff_name fallback
+- [x] Add date columns to shift dropdown (show full date alongside time range) - date headers grouped by day, blue date labels on each shift item, cross-date indicator for overnight shifts
+- [x] Add backend endpoint for today's revenue per cafe (using reportData API with today's date)
+- [x] Add real-time daily revenue cards to Overview page (per cafe + combined total)
+- [x] Add auto-refresh polling (30s interval) so revenue updates without manual refresh
+- [x] Fix NaN refund display - corrected API field name mappings (report.cash, topup.amount, refund.topup.*)
+- [x] Fix shift grouping to use business-day logic (Morning→Afternoon→Graveyard) instead of calendar midnight
+- [x] Graveyard shifts starting after midnight should belong to previous business day
+- [x] Sort shifts within each day: Morning first, then Afternoon, then Graveyard
+- [x] Apply same business-day logic to Overview daily revenue calculation
+- [x] Fix Overview daily revenue showing wrong date — server uses UTC but cafes are in Philippine timezone (UTC+8), causing "today" to be off by a day
+- [x] Fix Reports page: selecting a shift does not filter report data to that shift's time range — now uses shift's actual start/end time to query reportData API
+- [x] Fix Overview daily revenue: verified numbers now match iCafeCloud (uses correct PH timezone + business day boundary)
+- [x] Fix Overview: should only display revenue from actual shifts (morning/afternoon/graveyard) for the business day, not raw time-range query that includes non-shift transactions
+- [x] Add expenses display to Overview page (per-cafe and combined totals)
+- [x] Add expenses display to Reports page (in ReportContent component)
+- [x] Fix Overview todayRevenue: only counting active shifts, missing completed shifts that ended within the same business day
+- [x] Add per-shift revenue breakdown on Overview page (staff name, shift time, amount per shift)
+- [x] Add color-coded badges (AM/PM/GY) to each shift in Overview breakdown to distinguish shift types
+- [x] Fix refund calculation in Overview - showing 3 refunds worth ₱30 but iCafeCloud shows 1 refund worth ₱10 (fixed: use only refund.topup.total and refund.sale.total instead of summing all sub-fields)
+- [x] Add daily totals to shift dropdown date headers (sum of all shifts for that date)
+- [x] Add grand total to "All Shifts" option (sum of all shifts in dropdown)
+- [x] Add auto-refresh polling to Reports page (same 30s interval as Overview)
+- [x] Fix Reports page auto-refresh to also update shift list dropdown, not just report data
+- [x] Fix refund calculation in Reports page - still showing 3 refunds worth ₱110 (fixed: use only refund.topup.total and refund.sale.total)
+- [x] Fix expense computation in Reports page - showing ₱0.00 for "All Shifts" (fixed: changed formula from Cash - ProductCost - Tax - Profit to Cash - Sales - Top-ups + Refunds)
+- [x] Fix aggregated totals calculation in Reports page when "All Shifts" is selected - sum of multiple shifts showing incorrect values (created shiftAggregated and shiftAggregatedCombined backend endpoints that fetch each shift individually and sum results server-side, replacing raw date-range queries)
+- [ ] Fix expenses showing ₱0.00 on Reports page with shift-aggregated data
+- [x] QuickBooks Online OAuth2 connection flow (backend + frontend) - implemented OAuth routes at /api/quickbooks/connect and /api/quickbooks/callback with state verification
+- [x] Store QuickBooks tokens (access, refresh, realmId) in database - created qb_tokens table with automatic token refresh logic
+- [x] Daily report generation with shift breakdowns for QuickBooks - implemented generateDailyReport function that fetches all shifts for a business day and aggregates data
+- [x] QuickBooks journal entry posting endpoint - created trpc.quickbooks.sendReport mutation that posts shift-by-shift journal entries with debit/credit lines
+- [x] QuickBooks settings UI (connect/disconnect, account mapping, manual send) - added /quickbooks page with connection status, cafe/date selector, and send history log
+- [x] Vitest tests for QuickBooks integration - added tests for OAuth URL generation, credentials validation, and report generation error handling
+- [x] Fix QuickBooks OAuth "accounts.intuit.com refused to connect" error - redirect URI mismatch (added QB_REDIRECT_URI env var, updated OAuth handler to use configured URI, added setup instructions to UI)
+- [x] Fix iCafeCloud API IPv6 authentication error - server using IPv6 address not whitelisted, need to force IPv4 (added IPv4-only HTTPS agent to axios config)
+- [ ] Fix QuickBooks report generation "No shifts found" error - shifts visible in Reports page but not found by QB report generator
+- [x] QuickBooks automated report sending - three modes: daily at specific time, after business day ends, after last shift closes (implemented qb_auto_send_settings table, scheduler with 1-min polling, auto-send UI with Switch/RadioGroup)
+- [x] Database schema for auto-send settings (mode, time, enabled status per cafe) - created qb_auto_send_settings table with userId, cafeId, enabled, mode, scheduleTime
+- [x] Backend scheduler/cron logic for automated sending - implemented startScheduler with processAutoSendReports running every minute, checks enabled settings and triggers sendScheduledReport
+- [x] UI for configuring auto-send settings on QuickBooks page - added AutoSendSettings component with enable toggle, mode selection (daily_time/business_day_end/last_shift), time picker
