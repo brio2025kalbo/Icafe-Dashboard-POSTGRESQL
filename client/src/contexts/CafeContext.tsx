@@ -34,7 +34,11 @@ export function CafeProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (cafes && cafes.length > 0 && selectedCafeId === null) {
-      setSelectedCafeId(cafes.length > 1 ? "all" : cafes[0].id);
+      // Filter to only active cafes for auto-selection
+      const activeCafes = cafes.filter((c) => c.isActive);
+      if (activeCafes.length > 0) {
+        setSelectedCafeId(activeCafes.length > 1 ? "all" : activeCafes[0].id);
+      }
     }
   }, [cafes, selectedCafeId]);
 

@@ -11,11 +11,14 @@ import { Building2 } from "lucide-react";
 export function CafeSelector() {
   const { cafes, selectedCafeId, setSelectedCafeId } = useCafe();
 
-  if (cafes.length === 0) {
+  // Filter to show only active cafes
+  const activeCafes = cafes.filter((cafe) => cafe.isActive);
+
+  if (activeCafes.length === 0) {
     return (
       <div className="flex items-center gap-2 px-2 py-1.5 text-sm text-muted-foreground">
         <Building2 className="h-4 w-4" />
-        <span>No cafes configured</span>
+        <span>No active cafes</span>
       </div>
     );
   }
@@ -34,10 +37,10 @@ export function CafeSelector() {
         </div>
       </SelectTrigger>
       <SelectContent>
-        {cafes.length > 1 && (
+        {activeCafes.length > 1 && (
           <SelectItem value="all">All Cafes (Combined)</SelectItem>
         )}
-        {cafes.map((cafe) => (
+        {activeCafes.map((cafe) => (
           <SelectItem key={cafe.id} value={cafe.id.toString()}>
             {cafe.name}
           </SelectItem>
