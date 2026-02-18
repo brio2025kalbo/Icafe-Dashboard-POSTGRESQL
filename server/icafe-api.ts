@@ -34,13 +34,19 @@ async function icafeRequest<T = unknown>(
 ): Promise<IcafeResponse<T>> {
   const url = `${ICAFE_BASE_URL}/api/v2/cafe/${options.cafeId}${path}`;
   console.log(`[iCafe API] ${method} ${url}`, queryParams ? `params: ${JSON.stringify(queryParams)}` : '');
+  
+  // Ensure API key is trimmed to avoid whitespace issues
+  const apiKey = options.apiKey.trim();
+  
+  // Debug: Log the length and first/last few characters of the API key (for debugging without exposing full key)
+  console.log(`[iCafe API] API Key length: ${apiKey.length}, starts with: ${apiKey.substring(0, 4)}...`);
 
   try {
     const response = await axios({
       method,
       url,
       headers: {
-        Authorization: `Bearer ${options.apiKey}`,
+        Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
       data: body,

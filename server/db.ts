@@ -401,7 +401,8 @@ export async function addCafe(
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  const encrypted = encrypt(data.apiKey);
+  // Trim API key to avoid whitespace issues
+  const encrypted = encrypt(data.apiKey.trim());
 
   // Insert the cafe (userId kept for backward compatibility but will be deprecated)
   const result = await db.insert(cafes).values({
@@ -456,7 +457,7 @@ export async function updateCafe(
   const updateSet: Record<string, unknown> = {};
   if (data.name !== undefined) updateSet.name = data.name;
   if (data.cafeId !== undefined) updateSet.cafeId = data.cafeId;
-  if (data.apiKey !== undefined) updateSet.apiKeyEncrypted = encrypt(data.apiKey);
+  if (data.apiKey !== undefined) updateSet.apiKeyEncrypted = encrypt(data.apiKey.trim());
   if (data.location !== undefined) updateSet.location = data.location;
   if (data.timezone !== undefined) updateSet.timezone = data.timezone;
   if (data.isActive !== undefined) updateSet.isActive = data.isActive;
