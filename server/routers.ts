@@ -742,7 +742,8 @@ export const appRouter = router({
           allCafes.map(async (cafe) => {
             try {
               // 🔥 Fetch billing logs to extract refund username + reason
-              const businessStart = `${dateStr} 06:00:00`;
+              // Use 00:00:00 to cover graveyard shifts that start before 6am
+              const businessStart = `${dateStr} 00:00:00`;
               const businessEnd = `${nextDayStr} 05:59:59`;
 
               let refundLogs: any[] = [];
@@ -759,35 +760,61 @@ export const appRouter = router({
                       date_end: businessEnd,
                       page,
                       limit: 100,
+                      event: 'TOPUP',  // Filter for TOPUP events only (includes refunds)
                     }
                   );
 
-                  console.log("Billing Page:", page, billing?.data);
-
                   const logs = billing?.data?.log_list || [];
+                  const pagingInfo = billing?.data?.paging_info;
 
                   if (logs.length === 0) break;
 
                   allLogs.push(...logs);
+                  
+                  console.log(`[${cafe.name}] Fetched page ${page}: ${logs.length} TOPUP logs (Total so far: ${allLogs.length})`);
+                  if (pagingInfo && page === 1) {
+                    console.log(`[${cafe.name}] Paging info: total_records=${pagingInfo.total_records}, pages=${pagingInfo.pages}`);
+                  }
 
-                  if (logs.length < 100) break;
+                  // Check if we've reached the last page using paging_info
+                  if (pagingInfo && page >= Number(pagingInfo.pages)) {
+                    console.log(`[${cafe.name}] Reached last page (${page}/${pagingInfo.pages})`);
+                    break;
+                  }
+                  
+                  // Safety check: if no paging_info, fall back to checking log count
+                  if (!pagingInfo && logs.length < 100) break;
 
                   page++;
                 }
 
-                console.log("ALL BILLING LOGS:", allLogs);
+                console.log(`[${cafe.name}] Total TOPUP logs fetched: ${allLogs.length}`);
 
+                // Filter for refunds (TOPUP events with "comment:" in details)
+                // Refunds have pattern: "topup from cafe, comment: <reason>"
+                // Regular topups: "topup from cafe" (no comment)
                 refundLogs = allLogs
-                  .filter((log: any) =>
-                    log.log_event?.toLowerCase().includes("TOPUP")
-                  )
+                  .filter((log: any) => {
+                    const details = (log.log_details || "").toLowerCase();
+                    const money = Number(log.log_money || 0);
+                    // Check for "comment:" keyword (unique to refunds) and negative amount
+                    return details.includes("comment:") && money < 0;
+                  })
                   .map((log: any) => ({
                     member: log.log_member_account,
-                    amount: Number(log.log_money || 0),
+                    amount: Number(log.log_money || 0), // Preserve original negative value
                     reason: log.log_details || "",
                     staff: log.log_staff_name,
-                    time: log.log_date,
+                    time: log.log_date_local, // Use local time instead of UTC
+                    event: log.log_event,
                   }));
+
+                console.log(`[${cafe.name}] Refund Logs found: ${refundLogs.length}`);
+                if (refundLogs.length > 0) {
+                  refundLogs.forEach((log, idx) => {
+                    console.log(`  [${idx}] Member: ${log.member}, Staff: ${log.staff}, Amount: ${log.amount}, Reason: "${log.reason}"`);
+                  });
+                }
 
               } catch (err) {
                 console.error("Refund log fetch failed:", err);
@@ -1011,6 +1038,65 @@ export const appRouter = router({
                 }
 
                 const shiftOrder = shiftResults.map(s => s.staffName);
+
+                console.log(`[${cafe.name}] Refund Items before enrichment:`, combined.refundItems.length);
+                combined.refundItems.forEach((item, idx) => {
+                  console.log(`  [${idx}] Staff: ${item.staff}, Amount: ${item.amount}, Details: "${item.details}"`);
+                });
+
+                // Constants for refund matching
+                const AMOUNT_MATCH_TOLERANCE = 0.01; // Tolerance for floating point comparison
+                
+                // Enrich refundItems with reasons from refundLogs
+                // Track matched logs to avoid duplicate matching
+                // Note: Matching is done by staff name and amount. In cases where multiple refunds 
+                // have identical staff and amount, the first available match is used. This is a 
+                // limitation due to lack of unique transaction IDs in the data structure.
+                const usedLogIndices = new Set<number>();
+                
+                combined.refundItems = combined.refundItems.map((item: any) => {
+                  // Try to find a matching refund log entry that hasn't been used yet
+                  // Note: refundLogs amounts are negative, item amounts are positive
+                  // Using log.amount + item.amount to compare: -100 + 100 = 0 for a match
+                  const matchingLogIndex = refundLogs.findIndex((log: any, index: number) => {
+                    const staffMatch = (log.staff || "").trim().toLowerCase() === (item.staff || "").trim().toLowerCase();
+                    const amountMatch = Math.abs(log.amount + item.amount) <= AMOUNT_MATCH_TOLERANCE;
+                    const notUsed = !usedLogIndices.has(index);
+                    
+                    if (!notUsed) return false;
+                    
+                    return staffMatch && amountMatch;
+                  });
+                  
+                  if (matchingLogIndex !== -1) {
+                    const matchingLog = refundLogs[matchingLogIndex];
+                    usedLogIndices.add(matchingLogIndex);
+                    
+                    console.log(`  ✓ Matched: ${item.staff} ${item.amount} with member: "${matchingLog.member}", reason: "${matchingLog.reason}"`);
+                    
+                    if (matchingLog.reason) {
+                      // Format details to include member and reason
+                      const memberInfo = matchingLog.member ? `Member: ${matchingLog.member} - ` : '';
+                      const detailsWithMember = `${memberInfo}${matchingLog.reason}`;
+                      
+                      return {
+                        ...item,
+                        member: matchingLog.member,
+                        reason: matchingLog.reason,
+                        details: detailsWithMember, // Include member in details
+                      };
+                    }
+                  } else {
+                    console.log(`  ✗ No match for: ${item.staff} ${item.amount}`);
+                  }
+                  
+                  return item;
+                });
+
+                console.log(`[${cafe.name}] Refund Items after enrichment: ${combined.refundItems.length}`);
+                combined.refundItems.forEach((item, idx) => {
+                  console.log(`  [${idx}] ${item.staff}: "${item.details}"`);
+                });
 
                 const fullDayReport = await icafe.getReportData(
                   { cafeId: cafe.cafeId, apiKey: cafe.apiKey },

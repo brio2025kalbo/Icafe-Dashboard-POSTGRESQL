@@ -282,6 +282,13 @@ export function getBillingLogs(
     date_end?: string;
     page?: number;
     limit?: number;
+    event?: string;
+    staff?: string;
+    member?: string;
+    pc?: string;
+    member_or_guest?: string;
+    data_source?: string;
+    log_type?: string;
   }
 ) {
   const qp: Record<string, string> = {};
@@ -290,6 +297,13 @@ export function getBillingLogs(
   if (params?.date_end) qp.date_end = params.date_end;
   if (params?.page) qp.page = String(params.page);
   if (params?.limit) qp.limit = String(params.limit);
+  if (params?.event) qp.event = params.event;
+  if (params?.staff) qp.staff = params.staff;
+  if (params?.member) qp.member = params.member;
+  if (params?.pc) qp.pc = params.pc;
+  if (params?.member_or_guest) qp.member_or_guest = params.member_or_guest;
+  if (params?.data_source) qp.data_source = params.data_source;
+  if (params?.log_type) qp.log_type = params.log_type;
 
   return icafeRequest("GET", "/billingLogs", opts, undefined, qp);
 }
