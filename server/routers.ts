@@ -770,10 +770,16 @@ export const appRouter = router({
                   console.log("Billing Page:", page, billing?.data);
 
                   const logs = billing?.data?.log_list || [];
+                  const pagingInfo = billing?.data?.paging_info;
 
                   if (logs.length === 0) break;
 
                   allLogs.push(...logs);
+                  
+                  console.log(`[${cafe.name}] Fetched page ${page}: ${logs.length} logs (Total so far: ${allLogs.length})`);
+                  if (pagingInfo) {
+                    console.log(`[${cafe.name}] Paging info: total_records=${pagingInfo.total_records}, pages=${pagingInfo.pages}, current_page=${pagingInfo.page}`);
+                  }
 
                   if (logs.length < 100) break;
 
@@ -821,7 +827,7 @@ export const appRouter = router({
                     amount: Number(log.log_money || 0), // Preserve original negative value
                     reason: log.log_details || "",
                     staff: log.log_staff_name,
-                    time: log.log_date,
+                    time: log.log_date_local, // Use local time instead of UTC
                     event: log.log_event,
                   }));
 
