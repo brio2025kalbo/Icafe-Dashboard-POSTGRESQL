@@ -104,7 +104,7 @@ export default function Home() {
         const isRead = readStatusMap.get(key) || false;
         if (!isRead) {
           unreadCount++;
-          if (unreadFeedbacks.length < 3) { // Only show first 3 in toast
+          if (unreadFeedbacks.length < 2) { // Only show first 2 in toast
             unreadFeedbacks.push({
               cafeName: cafeFeedback.cafeName,
               subject: feedback.subject,

@@ -1,7 +1,7 @@
 import { and, eq, inArray } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
-import { InsertUser, users, cafes, InsertCafe, userCafes, InsertUserCafe, feedbackReadStatus } from "../drizzle/schema";
+import { InsertUser, users, cafes, InsertCafe, userCafes, InsertUserCafe } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 import { encrypt, decrypt } from "./encryption";
 import * as crypto from "crypto";
