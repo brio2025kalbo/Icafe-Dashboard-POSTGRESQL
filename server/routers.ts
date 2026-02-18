@@ -2275,10 +2275,22 @@ export const appRouter = router({
         })
       )
       .query(async ({ ctx, input }) => {
-        const cafes = await getUserCafes(ctx.user.id);
+        const cafes = await getAllUserCafesWithKeys(ctx.user.id);
         
         const feedbackPromises = cafes.map(async (cafe) => {
           try {
+            // Skip cafes without API keys
+            if (!cafe.apiKey) {
+              console.warn(`[Feedback] Skipping cafe ${cafe.name} (${cafe.cafeId}): No API key configured`);
+              return {
+                cafeDbId: cafe.id,
+                cafeName: cafe.name,
+                cafeId: cafe.cafeId,
+                feedbacks: [],
+                error: "No API key configured for this cafe. Please add an API key in cafe settings.",
+              };
+            }
+            
             const response = await icafe.getFeedbackLogs(
               {
                 cafeId: cafe.cafeId,
