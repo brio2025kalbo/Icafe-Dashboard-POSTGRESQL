@@ -77,7 +77,7 @@ export default function Feedbacks() {
   const filteredFeedbacks = useMemo(() => {
     if (!allCafeFeedbacks) return [];
     
-    if (selectedCafeId) {
+    if (selectedCafeId && selectedCafeId !== 'all') {
       const filtered = allCafeFeedbacks.filter((cf) => cf.cafeDbId === selectedCafeId);
       console.log('[Feedbacks.tsx] Filtered by cafe:', { selectedCafeId, resultCount: filtered.length });
       return filtered;
