@@ -119,7 +119,7 @@ export default function Feedbacks() {
     );
   }
 
-  if (!filteredFeedbacks || filteredFeedbacks.length === 0) {
+  if (!filteredFeedbacks || filteredFeedbacks.length === 0 || totalFeedbackCount === 0) {
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-between">
