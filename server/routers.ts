@@ -2319,12 +2319,21 @@ export const appRouter = router({
               };
             }
 
-            // Ensure feedbacks is an array and log if not
+            // Extract feedbacks from the nested response structure
+            // The API returns: {code: 200, message: "success", data: {log_list: [...]}}
             let feedbacks: FeedbackLog[] = [];
-            if (Array.isArray(response.data)) {
+            if (response.data && typeof response.data === 'object' && 'log_list' in response.data) {
+              const logList = (response.data as any).log_list;
+              if (Array.isArray(logList)) {
+                feedbacks = logList;
+              } else {
+                console.warn(`[Feedback] log_list is not an array for cafe ${cafe.name} (${cafe.cafeId}):`, typeof logList);
+              }
+            } else if (Array.isArray(response.data)) {
+              // Fallback: if data is directly an array (old API format?)
               feedbacks = response.data;
             } else {
-              console.warn(`[Feedback] Non-array response.data for cafe ${cafe.name} (${cafe.cafeId}):`, 
+              console.warn(`[Feedback] Unexpected response.data structure for cafe ${cafe.name} (${cafe.cafeId}):`, 
                 typeof response.data);
               // Safely log the data
               try {
