@@ -401,8 +401,15 @@ export async function addCafe(
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  // Trim API key to avoid whitespace issues
-  const encrypted = encrypt(data.apiKey.trim());
+  // Validate and trim API key to avoid whitespace issues
+  if (!data.apiKey) {
+    throw new Error("API key is required");
+  }
+  const trimmedApiKey = data.apiKey.trim();
+  if (!trimmedApiKey) {
+    throw new Error("API key cannot be empty");
+  }
+  const encrypted = encrypt(trimmedApiKey);
 
   // Insert the cafe (userId kept for backward compatibility but will be deprecated)
   const result = await db.insert(cafes).values({
@@ -457,7 +464,13 @@ export async function updateCafe(
   const updateSet: Record<string, unknown> = {};
   if (data.name !== undefined) updateSet.name = data.name;
   if (data.cafeId !== undefined) updateSet.cafeId = data.cafeId;
-  if (data.apiKey !== undefined) updateSet.apiKeyEncrypted = encrypt(data.apiKey.trim());
+  if (data.apiKey != null) {
+    const trimmedApiKey = data.apiKey.trim();
+    if (!trimmedApiKey) {
+      throw new Error("API key cannot be empty");
+    }
+    updateSet.apiKeyEncrypted = encrypt(trimmedApiKey);
+  }
   if (data.location !== undefined) updateSet.location = data.location;
   if (data.timezone !== undefined) updateSet.timezone = data.timezone;
   if (data.isActive !== undefined) updateSet.isActive = data.isActive;

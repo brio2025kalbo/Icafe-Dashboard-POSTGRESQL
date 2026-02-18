@@ -35,8 +35,14 @@ async function icafeRequest<T = unknown>(
   const url = `${ICAFE_BASE_URL}/api/v2/cafe/${options.cafeId}${path}`;
   console.log(`[iCafe API] ${method} ${url}`, queryParams ? `params: ${JSON.stringify(queryParams)}` : '');
   
-  // Ensure API key is trimmed to avoid whitespace issues
+  // Validate and trim API key to avoid whitespace issues
+  if (!options.apiKey) {
+    throw new Error("API key is required");
+  }
   const apiKey = options.apiKey.trim();
+  if (!apiKey) {
+    throw new Error("API key cannot be empty");
+  }
   
   // Debug logging (only in development, without exposing key content)
   if (process.env.NODE_ENV === 'development') {
