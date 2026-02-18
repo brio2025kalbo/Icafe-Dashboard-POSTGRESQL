@@ -573,8 +573,13 @@ const toggleRefundStaff = (cafeId: number, staff: string) => {
               </CardTitle>
             </CardHeader>
 
-            <CardContent className="space-y-1 max-h-64 overflow-y-auto">
-              {topPCs.length > 0 ? (
+            <CardContent className="space-y-1 max-h-64 overflow-y-auto">              
+            {todayRevenueQuery.isLoading && (
+              <Skeleton className="h-16 w-full" />
+            )}
+            
+            {!todayRevenueQuery.isLoading &&
+              (topPCs.length > 0 ? (
                 topPCs.map((p, i) => (
                   <div key={i} className="flex justify-between text-sm">
                     <span>{i + 1}. {p.pc}</span>
@@ -587,7 +592,7 @@ const toggleRefundStaff = (cafeId: number, staff: string) => {
                 <div className="text-sm text-muted-foreground">
                   No PC usage yet
                 </div>
-              )}
+              ))}
             </CardContent>
           </Card>
           <Card className="bg-card border-border/50 lg:col-span-1">
@@ -599,7 +604,12 @@ const toggleRefundStaff = (cafeId: number, staff: string) => {
           </CardHeader>
 
           <CardContent className="space-y-1 max-h-64 overflow-y-auto">
-            {topMembers.length > 0 ? (
+          {todayRevenueQuery.isLoading && (
+              <Skeleton className="h-16 w-full" />
+            )}
+
+            {!todayRevenueQuery.isLoading &&
+              (topMembers.length > 0 ? (
               topMembers.map((m, i) => (
                 <div
                   key={i}
@@ -617,7 +627,7 @@ const toggleRefundStaff = (cafeId: number, staff: string) => {
               <div className="text-sm text-muted-foreground">
                 No top-ups yet
               </div>
-            )}
+            ))}
           </CardContent>
           </Card>
           <Card className="bg-card border-border/50 lg:col-span-1">
