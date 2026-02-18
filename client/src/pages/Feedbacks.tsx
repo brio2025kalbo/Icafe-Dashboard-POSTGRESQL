@@ -60,16 +60,17 @@ export default function Feedbacks() {
 
   // Mark all as read mutation
   const markAllAsReadMutation = trpc.feedbacks.markAllAsRead.useMutation({
-    onSuccess: (data) => {
+    onSuccess: (data, variables) => {
       // Invalidate queries to trigger refetch in all components
       utils.feedbacks.allCafes.invalidate();
       utils.feedbacks.getReadStatuses.invalidate();
-      toast.success(`Marked ${data.count} feedback(s) as read`);
+      const action = variables.isRead ? "read" : "unread";
+      toast.success(`Marked ${data.count} feedback(s) as ${action}`);
     },
     onError: (error) => {
       const errorMessage = error.message || "Unknown error occurred";
-      toast.error(`Failed to mark all as read: ${errorMessage}`);
-      console.error("Error marking all as read:", error);
+      toast.error(`Failed to update feedbacks: ${errorMessage}`);
+      console.error("Error updating all feedbacks:", error);
     },
   });
 
@@ -81,13 +82,13 @@ export default function Feedbacks() {
     });
   };
 
-  const handleMarkAllAsRead = (cafeDbId: number, logIds: number[]) => {
+  const handleToggleAllReadStatus = (cafeDbId: number, logIds: number[], markAsRead: boolean) => {
     if (logIds.length === 0) return;
     
     markAllAsReadMutation.mutate({
       cafeDbId,
       logIds,
-      isRead: true,
+      isRead: markAsRead,
     });
   };
 
@@ -208,6 +209,20 @@ export default function Feedbacks() {
             })
             .map((feedback) => feedback.log_id);
           
+          // Get read feedback IDs for this cafe
+          const readLogIds = cafeFeedback.feedbacks
+            .filter((feedback) => {
+              const key = `${cafeFeedback.cafeDbId}-${feedback.log_id}`;
+              const isRead = readStatusMap.get(key) || false;
+              return isRead;
+            })
+            .map((feedback) => feedback.log_id);
+          
+          // Determine if we should show "Mark All as Read" or "Mark All as Unread"
+          const hasUnread = unreadCount > 0;
+          const hasRead = readLogIds.length > 0;
+          const allRead = cafeFeedback.feedbacks.length > 0 && unreadCount === 0;
+          
           // Debug logging for each cafe card
           console.log('[Feedbacks.tsx] Rendering cafe card:', {
             cafeName: cafeFeedback.cafeName,
@@ -230,21 +245,25 @@ export default function Feedbacks() {
                       {cafeFeedback.feedbacks.length} total
                     </Badge>
                     {unreadCount > 0 && (
-                      <>
-                        <Badge variant="destructive">
-                          {unreadCount} unread
-                        </Badge>
-                        <Button
-                          size="sm"
-                          variant="default"
-                          onClick={() => handleMarkAllAsRead(cafeFeedback.cafeDbId, unreadLogIds)}
-                          disabled={markAllAsReadMutation.isPending}
-                          className="gap-1"
-                        >
-                          <CheckCheck className="h-4 w-4" />
-                          Mark All as Read
-                        </Button>
-                      </>
+                      <Badge variant="destructive">
+                        {unreadCount} unread
+                      </Badge>
+                    )}
+                    {cafeFeedback.feedbacks.length > 0 && (
+                      <Button
+                        size="sm"
+                        variant={allRead ? "outline" : "default"}
+                        onClick={() => handleToggleAllReadStatus(
+                          cafeFeedback.cafeDbId,
+                          allRead ? readLogIds : unreadLogIds,
+                          !allRead
+                        )}
+                        disabled={markAllAsReadMutation.isPending}
+                        className="gap-1"
+                      >
+                        <CheckCheck className="h-4 w-4" />
+                        {allRead ? "Mark All as Unread" : "Mark All as Read"}
+                      </Button>
                     )}
                   </div>
                 </div>
