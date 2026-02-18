@@ -671,6 +671,8 @@ export const appRouter = router({
             const refundTopup = reportData?.refund?.topup || {};
             const refundTopupTotal = refundTopup?.total;
             
+            console.log(`[DEBUG] RefundTopup structure for ${staffName}:`, JSON.stringify(refundTopup, null, 2));
+            
             let refundTotal = Number(refundTopupTotal?.amount || 0);
             let refundCount = Number(refundTopupTotal?.number || 0);
             
@@ -683,6 +685,8 @@ export const appRouter = router({
             }
             
             const refundProduct = reportData?.refund?.product;
+            
+            console.log(`[DEBUG] RefundProduct structure for ${staffName}:`, JSON.stringify(refundProduct, null, 2));
             
             if (refundProduct && typeof refundProduct === "object") {
               const productAmount = Number(refundProduct.amount || refundProduct.total || 0);
@@ -782,6 +786,20 @@ export const appRouter = router({
                 if (allLogs.length > 0) {
                   console.log(`[${cafe.name}] Sample billing log:`, JSON.stringify(allLogs[0], null, 2));
                 }
+
+                // Log all unique event types to understand what's in the billing logs
+                const eventTypes = new Set(allLogs.map((log: any) => log.log_event));
+                console.log(`[${cafe.name}] Unique event types in billing logs:`, Array.from(eventTypes).join(", "));
+                
+                // Log all transactions with "topup" or "refund" in any field (regardless of amount)
+                const topupOrRefundLogs = allLogs.filter((log: any) => {
+                  const logStr = JSON.stringify(log).toLowerCase();
+                  return logStr.includes("topup") || logStr.includes("refund");
+                });
+                console.log(`[${cafe.name}] Logs containing "topup" or "refund":`, topupOrRefundLogs.length);
+                topupOrRefundLogs.forEach((log: any) => {
+                  console.log(`  Event="${log.log_event}", Money=${log.log_money}, Details="${log.log_details}"`);
+                });
 
                 refundLogs = allLogs
                   .filter((log: any) => {
