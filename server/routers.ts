@@ -2319,12 +2319,20 @@ export const appRouter = router({
               };
             }
 
-            // Ensure feedbacks is an array
-            const feedbacks = Array.isArray(response.data) ? response.data : [];
-            if (!Array.isArray(response.data)) {
+            // Ensure feedbacks is an array and log if not
+            let feedbacks: FeedbackLog[] = [];
+            if (Array.isArray(response.data)) {
+              feedbacks = response.data;
+            } else {
               console.warn(`[Feedback] Non-array response.data for cafe ${cafe.name} (${cafe.cafeId}):`, 
-                typeof response.data, 
-                JSON.stringify(response.data).substring(0, 200));
+                typeof response.data);
+              // Safely log the data
+              try {
+                const dataStr = JSON.stringify(response.data);
+                console.warn(`[Feedback] Data content:`, dataStr.substring(0, 200));
+              } catch (e) {
+                console.warn(`[Feedback] Could not stringify response.data (circular or error)`);
+              }
             }
 
             return {
