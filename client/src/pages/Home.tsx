@@ -304,7 +304,7 @@ const toggleRefundStaff = (cafeId: number, staff: string) => {
     if (!todayRevenueQuery.data) return [];
   
     const cafesData = todayRevenueQuery.data.cafes;
-  
+    
     const filtered =
       selectedCafeId === "all"
         ? cafesData
@@ -535,7 +535,8 @@ const toggleRefundStaff = (cafeId: number, staff: string) => {
           />
           <Card className="bg-card border-border/50 lg:col-span-1">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <Monitor className="h-4 w-4 text-primary" />
                 Top PCs
               </CardTitle>
             </CardHeader>
@@ -559,7 +560,8 @@ const toggleRefundStaff = (cafeId: number, staff: string) => {
           </Card>
           <Card className="bg-card border-border/50 lg:col-span-1">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <Users className="h-4 w-4 text-primary" />
               Top Members
             </CardTitle>
           </CardHeader>
