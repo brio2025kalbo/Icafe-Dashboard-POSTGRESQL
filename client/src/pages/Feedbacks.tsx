@@ -195,17 +195,22 @@ export default function Feedbacks() {
                           <p>Unable to retrieve feedbacks from iCafe Cloud API.</p>
                           <p className="font-medium">Common causes:</p>
                           <ul className="list-disc list-inside space-y-1 text-left max-w-md mx-auto">
+                            <li>Feedback feature not enabled in iCafe Cloud</li>
+                            <li>API key doesn't have feedback access permission</li>
                             <li>Invalid or expired API key</li>
-                            <li>API key doesn't have required permissions</li>
                             <li>Network or connectivity issues</li>
                           </ul>
                           <p className="font-medium mt-3">To resolve:</p>
                           <ol className="list-decimal list-inside space-y-1 text-left max-w-md mx-auto">
                             <li>Go to <a href="https://manager.icafecloud.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline inline-flex items-center gap-1">iCafe Cloud Manager <ExternalLink className="h-3 w-3" /></a></li>
-                            <li>Navigate to Settings → API Settings</li>
-                            <li>Generate or copy your API key</li>
+                            <li>Check if Feedback feature is enabled for your cafe</li>
+                            <li>Verify API key has "Feedback Logs" permission enabled</li>
+                            <li>If needed, generate a new API key with correct permissions</li>
                             <li>Update the API key in cafe settings below</li>
                           </ol>
+                          <p className="text-xs mt-3 p-2 bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 rounded">
+                            <strong>Note:</strong> The Feedback feature may require a premium subscription or specific plan in iCafe Cloud. Contact iCafe Cloud support if the feature is not available.
+                          </p>
                         </div>
                         <Button
                           onClick={() => setLocation("/settings")}

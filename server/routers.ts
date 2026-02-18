@@ -2293,14 +2293,17 @@ export const appRouter = router({
 
             // Check if the response indicates an error
             if (response.code && response.code >= 400) {
-              console.error(`[Feedback] API error for cafe ${cafe.name} (${cafe.cafeId}): ${response.code} - ${response.message}`);
+              const errorDetails = response.code === 401 
+                ? "Authentication failed - API key may not have Feedback Logs permission enabled in iCafe Cloud Manager"
+                : response.message;
+              console.error(`[Feedback] API error for cafe ${cafe.name} (${cafe.cafeId}): ${response.code} - ${errorDetails}`);
               // Return empty feedbacks for this cafe with error logged and returned to client
               return {
                 cafeDbId: cafe.id,
                 cafeName: cafe.name,
                 cafeId: cafe.cafeId,
                 feedbacks: [],
-                error: response.message,
+                error: errorDetails,
               };
             }
 

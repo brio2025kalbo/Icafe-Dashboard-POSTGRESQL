@@ -371,6 +371,9 @@ export default function CafeSettings() {
                 <div>
                   <p className="font-medium mb-1">How to get your API key:</p>
                   <p>Visit <a href="https://manager.icafecloud.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline inline-flex items-center gap-1">iCafe Cloud Manager <ExternalLink className="h-3 w-3" /></a> → Settings → API Settings</p>
+                  <p className="mt-2 text-yellow-600 dark:text-yellow-400">
+                    <strong>Note:</strong> For Feedback feature, ensure your API key has "Feedback Logs" permission enabled.
+                  </p>
                 </div>
               </div>
             </div>
@@ -454,6 +457,9 @@ export default function CafeSettings() {
                 <Info className="h-4 w-4 mt-0.5 flex-shrink-0" />
                 <div>
                   <p>Get your API key from <a href="https://manager.icafecloud.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline inline-flex items-center gap-1">iCafe Cloud Manager <ExternalLink className="h-3 w-3" /></a></p>
+                  <p className="mt-2 text-yellow-600 dark:text-yellow-400">
+                    <strong>Note:</strong> For Feedback feature, ensure "Feedback Logs" permission is enabled.
+                  </p>
                 </div>
               </div>
             </div>
