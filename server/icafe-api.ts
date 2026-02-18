@@ -308,6 +308,23 @@ export function getBillingLogs(
   return icafeRequest("GET", "/billingLogs", opts, undefined, qp);
 }
 
+export function getFeedbackLogs(
+  opts: IcafeApiOptions,
+  params?: {
+    read?: number;
+    page?: number;
+    limit?: number;
+  }
+) {
+  const qp: Record<string, string> = {};
+  
+  if (params?.read !== undefined) qp.read = String(params.read);
+  if (params?.page) qp.page = String(params.page);
+  if (params?.limit) qp.limit = String(params.limit);
+
+  return icafeRequest("GET", "/billingLogs/action/feedbackLogs", opts, undefined, qp);
+}
+
 
 // === Staff APIs ===
 export function getStaffs(opts: IcafeApiOptions) {

@@ -2233,6 +2233,90 @@ export const appRouter = router({
         return deleteUser(input.id, ctx.user.id);
       }),
   }),
+
+  // === Feedback Management ===
+  feedbacks: router({
+    list: protectedProcedure
+      .input(
+        z.object({
+          cafeDbId: z.number(),
+          read: z.number().optional(),
+          page: z.number().optional(),
+          limit: z.number().optional(),
+        })
+      )
+      .query(async ({ ctx, input }) => {
+        const cafe = await getCafeById(input.cafeDbId, ctx.user.id);
+        if (!cafe) {
+          return { code: 404, message: "Cafe not found", data: [] };
+        }
+
+        const response = await icafe.getFeedbackLogs(
+          {
+            cafeId: cafe.cafeId,
+            apiKey: cafe.apiKey,
+          },
+          {
+            read: input.read,
+            page: input.page,
+            limit: input.limit,
+          }
+        );
+
+        return response;
+      }),
+
+    allCafes: protectedProcedure.query(async ({ ctx }) => {
+      const cafes = await getUserCafes(ctx.user.id);
+      const feedbackPromises = cafes.map(async (cafe) => {
+        const response = await icafe.getFeedbackLogs(
+          {
+            cafeId: cafe.cafeId,
+            apiKey: cafe.apiKey,
+          },
+          {
+            read: -1, // Get all feedbacks
+            page: 1,
+            limit: 100,
+          }
+        );
+
+        return {
+          cafeDbId: cafe.id,
+          cafeName: cafe.name,
+          cafeId: cafe.cafeId,
+          feedbacks: response.data || [],
+        };
+      });
+
+      const results = await Promise.all(feedbackPromises);
+      return results;
+    }),
+
+    markAsRead: protectedProcedure
+      .input(
+        z.object({
+          cafeDbId: z.number(),
+          logId: z.number(),
+          isRead: z.boolean(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const { setFeedbackReadStatus } = await import("./db");
+        await setFeedbackReadStatus(
+          ctx.user.id,
+          input.cafeDbId,
+          input.logId,
+          input.isRead
+        );
+        return { success: true };
+      }),
+
+    getReadStatuses: protectedProcedure.query(async ({ ctx }) => {
+      const { getUserFeedbackReadStatuses } = await import("./db");
+      return getUserFeedbackReadStatuses(ctx.user.id);
+    }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;

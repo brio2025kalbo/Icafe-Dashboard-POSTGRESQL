@@ -17,6 +17,7 @@ import Orders from "./pages/Orders";
 import CafeSettings from "./pages/CafeSettings";
 import { QuickBooksSettings } from "./pages/QuickBooksSettings";
 import Users from "./pages/Users";
+import Feedbacks from "./pages/Feedbacks";
 
 function Router() {
   return (
@@ -34,6 +35,7 @@ function Router() {
               <Route path="/reports" component={Reports} />
               <Route path="/orders" component={Orders} />
               <Route path="/users" component={Users} />
+              <Route path="/feedbacks" component={Feedbacks} />
               <Route path="/settings" component={CafeSettings} />
               <Route path="/quickbooks" component={QuickBooksSettings} />
               <Route path="/404" component={NotFound} />

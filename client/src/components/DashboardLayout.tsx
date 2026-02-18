@@ -26,6 +26,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuBadge,
   SidebarProvider,
   SidebarTrigger,
   useSidebar,
@@ -46,14 +47,16 @@ import {
   Receipt,
   UserCog,
   UserPen,
+  MessageSquare,
 } from "lucide-react";
-import { CSSProperties, useEffect, useRef, useState } from "react";
+import { CSSProperties, useEffect, useRef, useState, useMemo } from "react";
 import { useLocation } from "wouter";
 import { Button } from "./ui/button";
 import { CafeSelector } from "./CafeSelector";
 import { CafeProvider } from "@/contexts/CafeContext";
 import { Separator } from "./ui/separator";
 import { EditProfileDialog } from "./EditProfileDialog";
+import { trpc } from "@/lib/trpc";
 
 const menuItems = [
   { icon: LayoutDashboard, label: "Overview", path: "/", adminOnly: false },
@@ -63,6 +66,7 @@ const menuItems = [
   { icon: Package, label: "Products", path: "/products", adminOnly: true },
   { icon: BarChart3, label: "Reports", path: "/reports", adminOnly: false },
   { icon: ShoppingCart, label: "Orders", path: "/orders", adminOnly: true },
+  { icon: MessageSquare, label: "Feedbacks", path: "/feedbacks", adminOnly: false },
   { icon: UserCog, label: "Users", path: "/users", adminOnly: true },
   { icon: Receipt, label: "QuickBooks", path: "/quickbooks", adminOnly: true },
   { icon: Settings, label: "Cafe Settings", path: "/settings", adminOnly: true },
@@ -123,6 +127,47 @@ function DashboardLayoutContent({
   const sidebarRef = useRef<HTMLDivElement>(null);
   const activeMenuItem = menuItems.find((item) => item.path === location);
   const isMobile = useIsMobile();
+
+  // Fetch feedbacks and read statuses to calculate unread count
+  const { data: allCafeFeedbacks } = trpc.feedbacks.allCafes.useQuery(
+    undefined,
+    {
+      refetchInterval: 60000, // Refetch every minute
+      enabled: !!user, // Only fetch if user is logged in
+    }
+  );
+
+  const { data: readStatuses = [] } = trpc.feedbacks.getReadStatuses.useQuery(
+    undefined,
+    {
+      refetchInterval: 60000,
+      enabled: !!user,
+    }
+  );
+
+  // Calculate total unread feedback count
+  const unreadFeedbackCount = useMemo(() => {
+    if (!allCafeFeedbacks || !readStatuses) return 0;
+
+    const readStatusMap = new Map<string, boolean>();
+    readStatuses.forEach((status) => {
+      const key = `${status.cafeId}-${status.logId}`;
+      readStatusMap.set(key, status.isRead);
+    });
+
+    let unreadCount = 0;
+    allCafeFeedbacks.forEach((cafeFeedback) => {
+      cafeFeedback.feedbacks.forEach((feedback: any) => {
+        const key = `${cafeFeedback.cafeDbId}-${feedback.log_id}`;
+        const isRead = readStatusMap.get(key) || false;
+        if (!isRead) {
+          unreadCount++;
+        }
+      });
+    });
+
+    return unreadCount;
+  }, [allCafeFeedbacks, readStatuses]);
 
   useEffect(() => {
     if (isCollapsed) {
@@ -199,6 +244,8 @@ function DashboardLayoutContent({
                 .filter((item) => !item.adminOnly || user?.role === "admin")
                 .map((item) => {
                 const isActive = location === item.path;
+                const showBadge = item.path === "/feedbacks" && unreadFeedbackCount > 0;
+                
                 return (
                   <SidebarMenuItem key={item.path}>
                     <SidebarMenuButton
@@ -212,6 +259,11 @@ function DashboardLayoutContent({
                       />
                       <span>{item.label}</span>
                     </SidebarMenuButton>
+                    {showBadge && (
+                      <SidebarMenuBadge className="bg-destructive text-destructive-foreground">
+                        {unreadFeedbackCount}
+                      </SidebarMenuBadge>
+                    )}
                   </SidebarMenuItem>
                 );
               })}

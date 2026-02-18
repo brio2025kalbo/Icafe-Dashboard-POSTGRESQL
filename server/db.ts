@@ -1,7 +1,7 @@
 import { and, eq, inArray } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
-import { InsertUser, users, cafes, InsertCafe, userCafes, InsertUserCafe } from "../drizzle/schema";
+import { InsertUser, users, cafes, InsertCafe, userCafes, InsertUserCafe, feedbackReadStatus } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 import { encrypt, decrypt } from "./encryption";
 import * as crypto from "crypto";
@@ -839,4 +839,79 @@ export async function getAllEnabledQbAutoSendSettings() {
     .where(eq(qbAutoSendSettings.enabled, 1));
 
   return result;
+}
+
+/* ---------- FEEDBACK READ STATUS ---------- */
+
+export async function getFeedbackReadStatus(userId: number, cafeId: number, logId: number) {
+  const db = await getDb();
+  if (!db) return null;
+
+  const { feedbackReadStatus } = await import("../drizzle/schema");
+  const result = await db
+    .select()
+    .from(feedbackReadStatus)
+    .where(
+      and(
+        eq(feedbackReadStatus.userId, userId),
+        eq(feedbackReadStatus.cafeId, cafeId),
+        eq(feedbackReadStatus.logId, logId)
+      )
+    )
+    .limit(1);
+
+  return result[0] || null;
+}
+
+export async function getUserFeedbackReadStatuses(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+
+  const { feedbackReadStatus } = await import("../drizzle/schema");
+  const result = await db
+    .select()
+    .from(feedbackReadStatus)
+    .where(eq(feedbackReadStatus.userId, userId));
+
+  return result;
+}
+
+export async function setFeedbackReadStatus(
+  userId: number,
+  cafeId: number,
+  logId: number,
+  isRead: boolean
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const { feedbackReadStatus } = await import("../drizzle/schema");
+
+  // Check if exists
+  const existing = await getFeedbackReadStatus(userId, cafeId, logId);
+
+  if (existing) {
+    // Update
+    await db
+      .update(feedbackReadStatus)
+      .set({
+        isRead,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(feedbackReadStatus.userId, userId),
+          eq(feedbackReadStatus.cafeId, cafeId),
+          eq(feedbackReadStatus.logId, logId)
+        )
+      );
+  } else {
+    // Insert
+    await db.insert(feedbackReadStatus).values({
+      userId,
+      cafeId,
+      logId,
+      isRead,
+    });
+  }
 }

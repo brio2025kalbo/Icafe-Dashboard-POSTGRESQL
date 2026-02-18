@@ -169,3 +169,36 @@ export type QbAutoSendSetting =
 
 export type InsertQbAutoSendSetting =
   typeof qbAutoSendSettings.$inferInsert;
+
+/* ---------- FEEDBACK ---------- */
+
+export const feedbackReadStatus = pgTable(
+  "feedback_read_status",
+  {
+    id: serial("id").primaryKey(),
+    
+    userId: integer("userId").notNull(),
+    cafeId: integer("cafeId").notNull(),
+    
+    // log_id from iCafe API
+    logId: integer("logId").notNull(),
+    
+    isRead: boolean("isRead").default(false).notNull(),
+    
+    createdAt: timestamp("createdAt", { withTimezone: false })
+      .defaultNow()
+      .notNull(),
+    
+    updatedAt: timestamp("updatedAt", { withTimezone: false })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    // Ensure unique feedback status per user and cafe
+    userCafeFeedbackUnique: uniqueIndex("user_cafe_feedback_unique")
+      .on(table.userId, table.cafeId, table.logId),
+  })
+);
+
+export type FeedbackReadStatus = typeof feedbackReadStatus.$inferSelect;
+export type InsertFeedbackReadStatus = typeof feedbackReadStatus.$inferInsert;
