@@ -2266,28 +2266,36 @@ export const appRouter = router({
         return response;
       }),
 
-    allCafes: protectedProcedure.query(async ({ ctx }) => {
-      const cafes = await getUserCafes(ctx.user.id);
-      const feedbackPromises = cafes.map(async (cafe) => {
-        const response = await icafe.getFeedbackLogs(
-          {
-            cafeId: cafe.cafeId,
-            apiKey: cafe.apiKey,
-          },
-          {
-            read: -1, // Get all feedbacks
-            page: 1,
-            limit: 100,
-          }
-        );
+    allCafes: protectedProcedure
+      .input(
+        z.object({
+          limit: z.number().min(1).max(500).optional().default(100),
+        }).optional()
+      )
+      .query(async ({ ctx, input }) => {
+        const cafes = await getUserCafes(ctx.user.id);
+        const limit = input?.limit ?? 100;
+        
+        const feedbackPromises = cafes.map(async (cafe) => {
+          const response = await icafe.getFeedbackLogs(
+            {
+              cafeId: cafe.cafeId,
+              apiKey: cafe.apiKey,
+            },
+            {
+              read: -1, // Get all feedbacks
+              page: 1,
+              limit,
+            }
+          );
 
-        return {
-          cafeDbId: cafe.id,
-          cafeName: cafe.name,
-          cafeId: cafe.cafeId,
-          feedbacks: response.data || [],
-        };
-      });
+          return {
+            cafeDbId: cafe.id,
+            cafeName: cafe.name,
+            cafeId: cafe.cafeId,
+            feedbacks: response.data || [],
+          };
+        });
 
       const results = await Promise.all(feedbackPromises);
       return results;

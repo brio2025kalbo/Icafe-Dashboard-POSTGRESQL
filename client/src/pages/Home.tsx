@@ -23,6 +23,7 @@ import { useMemo, useState, useEffect, useRef } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
+import type { FeedbackLog } from "@shared/feedback-types";
 
 //function formatCurrency(value: number): string {
 //  return `₱${value.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -99,7 +100,7 @@ export default function Home() {
     const unreadFeedbacks: Array<{ cafeName: string; subject: string; member: string }> = [];
 
     allCafeFeedbacks.forEach((cafeFeedback) => {
-      cafeFeedback.feedbacks.forEach((feedback: any) => {
+      cafeFeedback.feedbacks.forEach((feedback: FeedbackLog) => {
         const key = `${cafeFeedback.cafeDbId}-${feedback.log_id}`;
         const isRead = readStatusMap.get(key) || false;
         if (!isRead) {

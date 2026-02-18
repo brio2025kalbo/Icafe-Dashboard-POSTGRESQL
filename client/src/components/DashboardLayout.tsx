@@ -57,6 +57,7 @@ import { CafeProvider } from "@/contexts/CafeContext";
 import { Separator } from "./ui/separator";
 import { EditProfileDialog } from "./EditProfileDialog";
 import { trpc } from "@/lib/trpc";
+import type { FeedbackLog } from "@shared/feedback-types";
 
 const menuItems = [
   { icon: LayoutDashboard, label: "Overview", path: "/", adminOnly: false },
@@ -157,7 +158,7 @@ function DashboardLayoutContent({
 
     let unreadCount = 0;
     allCafeFeedbacks.forEach((cafeFeedback) => {
-      cafeFeedback.feedbacks.forEach((feedback: any) => {
+      cafeFeedback.feedbacks.forEach((feedback: FeedbackLog) => {
         const key = `${cafeFeedback.cafeDbId}-${feedback.log_id}`;
         const isRead = readStatusMap.get(key) || false;
         if (!isRead) {

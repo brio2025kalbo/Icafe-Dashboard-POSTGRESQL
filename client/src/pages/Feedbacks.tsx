@@ -9,25 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-
-interface FeedbackLog {
-  log_id: number;
-  log_icafe_id: number;
-  log_date: string;
-  log_member_account: string;
-  log_pc_name: string;
-  log_event: string;
-  log_date_local: string;
-  subject: string;
-  message: string;
-}
-
-interface CafeFeedbacks {
-  cafeDbId: number;
-  cafeName: string;
-  cafeId: string;
-  feedbacks: FeedbackLog[];
-}
+import type { FeedbackLog, CafeFeedbacks } from "@shared/feedback-types";
 
 export default function Feedbacks() {
   const { cafes, selectedCafeId } = useCafe();
