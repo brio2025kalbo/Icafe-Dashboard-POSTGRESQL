@@ -776,13 +776,26 @@ export const appRouter = router({
                 }
 
                 console.log("ALL BILLING LOGS:", allLogs);
+                console.log(`[${cafe.name}] Total billing logs fetched:`, allLogs.length);
+
+                // Log a sample of billing logs to understand the structure
+                if (allLogs.length > 0) {
+                  console.log(`[${cafe.name}] Sample billing log:`, JSON.stringify(allLogs[0], null, 2));
+                }
 
                 refundLogs = allLogs
                   .filter((log: any) => {
                     const logEvent = (log.log_event || "").toLowerCase();
                     const money = Number(log.log_money || 0);
                     // Filter for refund events: only negative transactions that are either topup-related or explicitly refunds
-                    return money < 0 && (logEvent.includes("topup") || logEvent.includes("refund"));
+                    const matches = money < 0 && (logEvent.includes("topup") || logEvent.includes("refund"));
+                    
+                    // Debug: log ALL negative transactions to see what we're missing
+                    if (money < 0) {
+                      console.log(`  Negative transaction: Event="${log.log_event}", Money=${money}, Staff="${log.log_staff_name}", Details="${log.log_details}", Matches=${matches}`);
+                    }
+                    
+                    return matches;
                   })
                   .map((log: any) => ({
                     member: log.log_member_account,
