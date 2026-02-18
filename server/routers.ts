@@ -2272,6 +2272,10 @@ export const appRouter = router({
         z.object({
           // Limit per cafe to prevent performance issues with large feedback volumes
           limit: z.number().min(1).max(MAX_FEEDBACK_LIMIT).default(DEFAULT_FEEDBACK_LIMIT),
+          // Optional date range for filtering feedbacks (format: YYYY-MM-DD)
+          // If not provided, fetches all available feedbacks (no date restriction)
+          dateStart: z.string().optional(),
+          dateEnd: z.string().optional(),
         })
       )
       .query(async ({ ctx, input }) => {
@@ -2300,6 +2304,8 @@ export const appRouter = router({
                 read: FEEDBACK_READ_STATUS_ALL, // Get all feedbacks
                 page: 1,
                 limit: input.limit,
+                date_start: input.dateStart,
+                date_end: input.dateEnd,
               }
             );
 

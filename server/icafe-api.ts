@@ -347,6 +347,8 @@ export function getFeedbackLogs(
     read?: number;
     page?: number;
     limit?: number;
+    date_start?: string;
+    date_end?: string;
   }
 ) {
   const qp: Record<string, string> = {};
@@ -354,6 +356,8 @@ export function getFeedbackLogs(
   if (params?.read !== undefined) qp.read = String(params.read);
   if (params?.page) qp.page = String(params.page);
   if (params?.limit) qp.limit = String(params.limit);
+  if (params?.date_start) qp.date_start = params.date_start;
+  if (params?.date_end) qp.date_end = params.date_end;
 
   return icafeRequest("GET", "/billingLogs/action/feedbackLogs", opts, undefined, qp);
 }
