@@ -1,4 +1,4 @@
-import { COOKIE_NAME } from "@shared/const";
+import { COOKIE_NAME, MAX_FEEDBACK_LIMIT, DEFAULT_FEEDBACK_LIMIT } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 //import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
@@ -28,10 +28,6 @@ import {
   createDailyRefund,
   createDailyExpense,
 } from "./services/quickbooks";
-
-// Configuration constants for feedback queries
-const MAX_FEEDBACK_LIMIT = 500; // Maximum feedbacks per cafe to prevent memory issues
-const DEFAULT_FEEDBACK_LIMIT = 100; // Default limit, sufficient for most cafes
 
 export const appRouter = router({
   system: systemRouter,
@@ -2279,7 +2275,6 @@ export const appRouter = router({
       )
       .query(async ({ ctx, input }) => {
         const cafes = await getUserCafes(ctx.user.id);
-        const limit = input.limit;
         
         const feedbackPromises = cafes.map(async (cafe) => {
           const response = await icafe.getFeedbackLogs(
@@ -2290,7 +2285,7 @@ export const appRouter = router({
             {
               read: -1, // Get all feedbacks
               page: 1,
-              limit,
+              limit: input.limit,
             }
           );
 

@@ -10,6 +10,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import type { FeedbackLog, CafeFeedbacks } from "@shared/feedback-types";
+import { DEFAULT_FEEDBACK_LIMIT } from "@shared/const";
 
 // UI Configuration
 const FEEDBACK_CARD_HEIGHT = "600px"; // Height of scrollable feedback area per cafe
@@ -18,9 +19,9 @@ export default function Feedbacks() {
   const { cafes, selectedCafeId } = useCafe();
   
   // Fetch all feedbacks from all cafes
-  // Uses default limit of 100 feedbacks per cafe, which is sufficient for typical dashboard usage
+  // Explicitly passes limit for clarity and future configurability
   const { data: allCafeFeedbacks, isLoading, refetch } = trpc.feedbacks.allCafes.useQuery(
-    undefined,
+    { limit: DEFAULT_FEEDBACK_LIMIT },
     {
       refetchInterval: 30000, // Refetch every 30 seconds
     }

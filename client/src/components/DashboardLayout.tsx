@@ -58,6 +58,7 @@ import { Separator } from "./ui/separator";
 import { EditProfileDialog } from "./EditProfileDialog";
 import { trpc } from "@/lib/trpc";
 import type { FeedbackLog } from "@shared/feedback-types";
+import { DEFAULT_FEEDBACK_LIMIT } from "@shared/const";
 
 const menuItems = [
   { icon: LayoutDashboard, label: "Overview", path: "/", adminOnly: false },
@@ -131,7 +132,7 @@ function DashboardLayoutContent({
 
   // Fetch feedbacks and read statuses to calculate unread count
   const { data: allCafeFeedbacks } = trpc.feedbacks.allCafes.useQuery(
-    undefined,
+    { limit: DEFAULT_FEEDBACK_LIMIT },
     {
       refetchInterval: 60000, // Refetch every minute
       enabled: !!user, // Only fetch if user is logged in

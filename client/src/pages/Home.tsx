@@ -24,6 +24,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
 import type { FeedbackLog } from "@shared/feedback-types";
+import { DEFAULT_FEEDBACK_LIMIT } from "@shared/const";
 
 //function formatCurrency(value: number): string {
 //  return `₱${value.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -74,7 +75,7 @@ export default function Home() {
 
   // Fetch feedbacks and read statuses for toast notifications
   const { data: allCafeFeedbacks } = trpc.feedbacks.allCafes.useQuery(
-    undefined,
+    { limit: DEFAULT_FEEDBACK_LIMIT },
     {
       refetchInterval: 60000, // Check every minute
       enabled: cafes.length > 0,
