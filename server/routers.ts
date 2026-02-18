@@ -29,6 +29,10 @@ import {
   createDailyExpense,
 } from "./services/quickbooks";
 
+// Configuration constants for feedback queries
+const MAX_FEEDBACK_LIMIT = 500; // Maximum feedbacks per cafe to prevent memory issues
+const DEFAULT_FEEDBACK_LIMIT = 100; // Default limit, sufficient for most cafes
+
 export const appRouter = router({
   system: systemRouter,
   auth: router({
@@ -2270,14 +2274,12 @@ export const appRouter = router({
       .input(
         z.object({
           // Limit per cafe to prevent performance issues with large feedback volumes
-          // Max of 500 balances memory usage with comprehensive data coverage
-          // Most cafes generate <100 feedbacks, so default of 100 is usually sufficient
-          limit: z.number().min(1).max(500).optional().default(100),
+          limit: z.number().min(1).max(MAX_FEEDBACK_LIMIT).optional().default(DEFAULT_FEEDBACK_LIMIT),
         }).optional()
       )
       .query(async ({ ctx, input }) => {
         const cafes = await getUserCafes(ctx.user.id);
-        const limit = input?.limit ?? 100;
+        const limit = input?.limit ?? DEFAULT_FEEDBACK_LIMIT;
         
         const feedbackPromises = cafes.map(async (cafe) => {
           const response = await icafe.getFeedbackLogs(

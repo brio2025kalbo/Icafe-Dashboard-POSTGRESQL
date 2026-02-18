@@ -11,6 +11,9 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import type { FeedbackLog, CafeFeedbacks } from "@shared/feedback-types";
 
+// UI Configuration
+const FEEDBACK_CARD_HEIGHT = "600px"; // Height of scrollable feedback area per cafe
+
 export default function Feedbacks() {
   const { cafes, selectedCafeId } = useCafe();
   
@@ -164,7 +167,7 @@ export default function Feedbacks() {
                 </div>
               </CardHeader>
               <CardContent className="p-0">
-                <ScrollArea className="h-[600px]">
+                <ScrollArea style={{ height: FEEDBACK_CARD_HEIGHT }}>
                   <div className="p-4 space-y-4">
                     {cafeFeedback.feedbacks.length === 0 ? (
                       <div className="text-center py-8 text-muted-foreground">

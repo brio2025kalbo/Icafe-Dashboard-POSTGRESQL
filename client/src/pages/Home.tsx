@@ -69,6 +69,9 @@ export default function Home() {
   const [, setLocation] = useLocation();
   const prevUnreadCountRef = useRef<number>(0);
 
+  // Configuration for feedback toast notifications
+  const MAX_TOAST_FEEDBACKS = 2; // Number of feedbacks to show details for in toast
+
   // Fetch feedbacks and read statuses for toast notifications
   const { data: allCafeFeedbacks } = trpc.feedbacks.allCafes.useQuery(
     undefined,
@@ -105,7 +108,7 @@ export default function Home() {
         const isRead = readStatusMap.get(key) || false;
         if (!isRead) {
           unreadCount++;
-          if (unreadFeedbacks.length < 2) { // Collect up to 2 feedbacks for toast display
+          if (unreadFeedbacks.length < MAX_TOAST_FEEDBACKS) { // Collect up to MAX_TOAST_FEEDBACKS for toast display
             unreadFeedbacks.push({
               cafeName: cafeFeedback.cafeName,
               subject: feedback.subject,
@@ -127,15 +130,15 @@ export default function Home() {
             <p className="font-semibold">
               {newCount} New Feedback{newCount > 1 ? "s" : ""}
             </p>
-            {unreadFeedbacks.slice(0, 2).map((fb, i) => (
+            {unreadFeedbacks.slice(0, MAX_TOAST_FEEDBACKS).map((fb, i) => (
               <p key={i} className="text-sm text-muted-foreground">
                 <span className="font-medium">{fb.cafeName}:</span> {fb.subject.substring(0, 40)}
                 {fb.subject.length > 40 ? "..." : ""}
               </p>
             ))}
-            {newCount > 2 && (
+            {newCount > MAX_TOAST_FEEDBACKS && (
               <p className="text-sm text-muted-foreground">
-                and {newCount - 2} more...
+                and {newCount - MAX_TOAST_FEEDBACKS} more...
               </p>
             )}
           </div>
