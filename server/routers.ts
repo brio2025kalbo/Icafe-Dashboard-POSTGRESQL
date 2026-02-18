@@ -2297,9 +2297,19 @@ export const appRouter = router({
           };
         });
 
-      const results = await Promise.all(feedbackPromises);
-      return results;
-    }),
+        // Use Promise.allSettled to handle partial failures gracefully
+        const results = await Promise.allSettled(feedbackPromises);
+        
+        // Return only successful results, filtering out failed cafe requests
+        return results
+          .filter((result): result is PromiseFulfilledResult<{
+            cafeDbId: number;
+            cafeName: string;
+            cafeId: string;
+            feedbacks: any[];
+          }> => result.status === 'fulfilled')
+          .map(result => result.value);
+      }),
 
     markAsRead: protectedProcedure
       .input(
