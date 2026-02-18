@@ -22,12 +22,23 @@ export default function Feedbacks() {
   
   // Fetch all feedbacks from all cafes
   // Explicitly passes limit for clarity and future configurability
-  const { data: allCafeFeedbacks, isLoading, refetch } = trpc.feedbacks.allCafes.useQuery(
+  const { data: allCafeFeedbacks, isLoading, refetch, error: queryError } = trpc.feedbacks.allCafes.useQuery(
     { limit: DEFAULT_FEEDBACK_LIMIT },
     {
       refetchInterval: 30000, // Refetch every 30 seconds
     }
   );
+  
+  // Debug logging
+  console.log('[Feedbacks.tsx] Query state:', { 
+    isLoading, 
+    hasData: !!allCafeFeedbacks, 
+    dataLength: allCafeFeedbacks?.length,
+    error: queryError?.message 
+  });
+  if (allCafeFeedbacks) {
+    console.log('[Feedbacks.tsx] Data received:', allCafeFeedbacks);
+  }
 
   // Fetch read statuses
   const { data: readStatuses = [] } = trpc.feedbacks.getReadStatuses.useQuery();
@@ -67,15 +78,20 @@ export default function Feedbacks() {
     if (!allCafeFeedbacks) return [];
     
     if (selectedCafeId) {
-      return allCafeFeedbacks.filter((cf) => cf.cafeDbId === selectedCafeId);
+      const filtered = allCafeFeedbacks.filter((cf) => cf.cafeDbId === selectedCafeId);
+      console.log('[Feedbacks.tsx] Filtered by cafe:', { selectedCafeId, resultCount: filtered.length });
+      return filtered;
     }
     
+    console.log('[Feedbacks.tsx] No cafe filter, returning all:', allCafeFeedbacks.length);
     return allCafeFeedbacks;
   }, [allCafeFeedbacks, selectedCafeId]);
 
   // Calculate total feedback count
   const totalFeedbackCount = useMemo(() => {
-    return filteredFeedbacks.reduce((acc, cf) => acc + cf.feedbacks.length, 0);
+    const count = filteredFeedbacks.reduce((acc, cf) => acc + cf.feedbacks.length, 0);
+    console.log('[Feedbacks.tsx] Total feedback count:', count, 'from', filteredFeedbacks.length, 'cafe(s)');
+    return count;
   }, [filteredFeedbacks]);
 
   // Calculate unread counts per cafe

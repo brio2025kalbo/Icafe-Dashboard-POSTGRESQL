@@ -2369,7 +2369,7 @@ export const appRouter = router({
         const results = await Promise.allSettled(feedbackPromises);
         
         // Return only successful results, filtering out failed cafe requests
-        return results
+        const finalResults = results
           .filter((result): result is PromiseFulfilledResult<{
             cafeDbId: number;
             cafeName: string;
@@ -2378,6 +2378,14 @@ export const appRouter = router({
             error?: string;
           }> => result.status === 'fulfilled')
           .map(result => result.value);
+        
+        // Debug logging: Show summary of what we're returning
+        console.log(`[Feedback] Returning ${finalResults.length} cafe(s) with total ${finalResults.reduce((sum, cafe) => sum + cafe.feedbacks.length, 0)} feedback(s)`);
+        finalResults.forEach(cafe => {
+          console.log(`[Feedback]   - ${cafe.cafeName}: ${cafe.feedbacks.length} feedback(s)${cafe.error ? ` (error: ${cafe.error})` : ''}`);
+        });
+        
+        return finalResults;
       }),
 
     markAsRead: protectedProcedure
