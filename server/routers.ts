@@ -1061,6 +1061,9 @@ export const appRouter = router({
                       time: log.time,
                     };
                   });
+                } else {
+                  // Clear refund items when no refund logs exist
+                  combined.refundItems = [];
                 }
 
                 console.log(`[${cafe.name}] Refund Items after enrichment: ${combined.refundItems.length}`);
