@@ -778,15 +778,19 @@ export const appRouter = router({
                 console.log("ALL BILLING LOGS:", allLogs);
 
                 refundLogs = allLogs
-                  .filter((log: any) =>
-                    log.log_event?.toLowerCase().includes("TOPUP")
-                  )
+                  .filter((log: any) => {
+                    const event = (log.log_event || "").toLowerCase();
+                    const money = Number(log.log_money || 0);
+                    // Filter for refund events (negative money) or events that explicitly mention refund
+                    return money < 0 || event.includes("refund");
+                  })
                   .map((log: any) => ({
                     member: log.log_member_account,
-                    amount: Number(log.log_money || 0),
+                    amount: Math.abs(Number(log.log_money || 0)), // Use absolute value for matching
                     reason: log.log_details || "",
                     staff: log.log_staff_name,
                     time: log.log_date,
+                    event: log.log_event,
                   }));
 
               } catch (err) {
