@@ -1114,7 +1114,16 @@ export const appRouter = router({
                   const topPCs =
                 (fullDayReport as any)?.data?.top_five_pc_spend || [];
 
-                
+                // Extract game data and convert to format expected by frontend
+                const gameData = (fullDayReport as any)?.data?.game || [];
+                const topGames = gameData
+                  .map((game: any) => ({
+                    game_name: game.name,
+                    hours_played: (Number(game.local_times || 0) + Number(game.pool_times || 0)) / 60, // Convert minutes to hours
+                    total_times: Number(game.local_times || 0) + Number(game.pool_times || 0)
+                  }))
+                  .sort((a: any, b: any) => b.total_times - a.total_times)
+                  .slice(0, 10); // Top 10 games
 
               return {
                 cafeDbId: cafe.id, cafeName: cafe.name, cafeId: cafe.cafeId,
@@ -1122,6 +1131,7 @@ export const appRouter = router({
                 refundLogs,
                 topMembers,
                 topPCs,
+                topGames,
                 topupsByStaff: Object.values(topupsByStaffMap)
                 .sort(
                   (a, b) =>
