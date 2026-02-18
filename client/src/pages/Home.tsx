@@ -347,7 +347,9 @@ const toggleRefundStaff = (cafeId: number, staff: string) => {
     filtered.forEach((cafe: any) => {
       (cafe.topMembers || []).forEach((m: any) => {
         const amount = Number(m.amount || 0);
-        map[m.member] = (map[m.member] || 0) + amount;
+        // Include cafe name in the key when viewing all cafes to avoid combining members from different cafes
+        const key = selectedCafeId === "all" ? `${cafe.cafeName} - ${m.member}` : m.member;
+        map[key] = (map[key] || 0) + amount;
       });
     });
   
@@ -374,7 +376,9 @@ const toggleRefundStaff = (cafeId: number, staff: string) => {
     filtered.forEach((cafe: any) => {
       (cafe.topPCs || []).forEach((pc: any) => {
         const spend = Number(pc.total_spend || 0);
-        map[pc.pc_name] = (map[pc.pc_name] || 0) + spend;
+        // Include cafe name in the key when viewing all cafes to avoid combining PCs from different cafes
+        const key = selectedCafeId === "all" ? `${cafe.cafeName} - ${pc.pc_name}` : pc.pc_name;
+        map[key] = (map[key] || 0) + spend;
       });
     });
   
