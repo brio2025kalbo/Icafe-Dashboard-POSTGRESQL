@@ -781,7 +781,14 @@ export const appRouter = router({
                     console.log(`[${cafe.name}] Paging info: total_records=${pagingInfo.total_records}, pages=${pagingInfo.pages}, current_page=${pagingInfo.page}`);
                   }
 
-                  if (logs.length < 100) break;
+                  // Check if we've reached the last page using paging_info
+                  if (pagingInfo && page >= Number(pagingInfo.pages)) {
+                    console.log(`[${cafe.name}] Reached last page (${page}/${pagingInfo.pages})`);
+                    break;
+                  }
+                  
+                  // Safety check: if no paging_info, fall back to checking log count
+                  if (!pagingInfo && logs.length < 100) break;
 
                   page++;
                 }
