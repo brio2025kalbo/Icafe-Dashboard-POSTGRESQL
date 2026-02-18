@@ -781,8 +781,9 @@ export const appRouter = router({
                   .filter((log: any) => {
                     const logEvent = (log.log_event || "").toLowerCase();
                     const money = Number(log.log_money || 0);
-                    // Filter for refund events (negative money) or events that explicitly mention refund
-                    return money < 0 || logEvent.includes("refund");
+                    // Filter for refund events: negative money AND/OR event explicitly mentions refund
+                    // This captures both explicit refund events and negative transactions that may be refunds
+                    return (money < 0 && logEvent.includes("topup")) || logEvent.includes("refund");
                   })
                   .map((log: any) => ({
                     member: log.log_member_account,
@@ -1031,7 +1032,7 @@ export const appRouter = router({
                   const matchingLogIndex = refundLogs.findIndex((log: any, index: number) => 
                     !usedLogIndices.has(index) &&
                     log.staff === item.staff && 
-                    Math.abs(log.amount - item.amount) < AMOUNT_MATCH_TOLERANCE
+                    Math.abs(log.amount - item.amount) <= AMOUNT_MATCH_TOLERANCE
                   );
                   
                   if (matchingLogIndex !== -1) {
