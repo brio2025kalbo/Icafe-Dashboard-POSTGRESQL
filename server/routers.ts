@@ -2295,69 +2295,102 @@ export const appRouter = router({
               };
             }
             
-            const response = await icafe.getFeedbackLogs(
-              {
-                cafeId: cafe.cafeId,
-                apiKey: cafe.apiKey,
-              },
-              {
-                read: FEEDBACK_READ_STATUS_ALL, // Get all feedbacks
-                page: 1,
-                limit: input.limit,
-                date_start: input.dateStart,
-                date_end: input.dateEnd,
+            // Fetch all pages of feedbacks
+            let allFeedbacks: FeedbackLog[] = [];
+            let currentPage = 1;
+            let totalPages = 1;
+            const MAX_PAGES = 100; // Safety limit to prevent infinite loops
+            
+            do {
+              const response = await icafe.getFeedbackLogs(
+                {
+                  cafeId: cafe.cafeId,
+                  apiKey: cafe.apiKey,
+                },
+                {
+                  read: FEEDBACK_READ_STATUS_ALL, // Get all feedbacks
+                  page: currentPage,
+                  limit: input.limit,
+                  date_start: input.dateStart,
+                  date_end: input.dateEnd,
+                }
+              );
+
+              // Check if the response indicates an error
+              if (response.code && response.code >= 400) {
+                const errorDetails = response.code === 401 
+                  ? "Authentication failed - API key may not have Feedback Logs permission enabled in iCafe Cloud Manager"
+                  : response.message;
+                console.error(`[Feedback] API error for cafe ${cafe.name} (${cafe.cafeId}): ${response.code} - ${errorDetails}`);
+                // Return empty feedbacks for this cafe with error logged and returned to client
+                return {
+                  cafeDbId: cafe.id,
+                  cafeName: cafe.name,
+                  cafeId: cafe.cafeId,
+                  feedbacks: [],
+                  error: errorDetails,
+                };
               }
-            );
 
-            // Check if the response indicates an error
-            if (response.code && response.code >= 400) {
-              const errorDetails = response.code === 401 
-                ? "Authentication failed - API key may not have Feedback Logs permission enabled in iCafe Cloud Manager"
-                : response.message;
-              console.error(`[Feedback] API error for cafe ${cafe.name} (${cafe.cafeId}): ${response.code} - ${errorDetails}`);
-              // Return empty feedbacks for this cafe with error logged and returned to client
-              return {
-                cafeDbId: cafe.id,
-                cafeName: cafe.name,
-                cafeId: cafe.cafeId,
-                feedbacks: [],
-                error: errorDetails,
-              };
-            }
-
-            // Extract feedbacks from the nested response structure
-            // The API returns: {code: 200, message: "success", data: {log_list: [...]}}
-            let feedbacks: FeedbackLog[] = [];
-            if (response.data && typeof response.data === 'object' && 'log_list' in response.data) {
-              const logList = (response.data as any).log_list;
-              if (Array.isArray(logList)) {
-                // Filter to only include FEEDBACK events (exclude RESTOCKNOTIFY, etc.)
-                feedbacks = logList.filter((log: any) => log.log_event === 'FEEDBACK');
-                console.log(`[Feedback] Filtered ${feedbacks.length} feedback(s) from ${logList.length} total logs for cafe ${cafe.name} (${cafe.cafeId})`);
+              // Extract feedbacks from the nested response structure
+              // The API returns: {code: 200, message: "success", data: {log_list: [...], paging_info: {...}}}
+              let pageFeedbacks: FeedbackLog[] = [];
+              if (response.data && typeof response.data === 'object' && 'log_list' in response.data) {
+                const logList = (response.data as any).log_list;
+                if (Array.isArray(logList)) {
+                  // Filter to only include FEEDBACK events (exclude RESTOCKNOTIFY, etc.)
+                  pageFeedbacks = logList.filter((log: any) => log.log_event === 'FEEDBACK');
+                }
+                
+                // Check for pagination info
+                const pagingInfo = (response.data as any).paging_info;
+                if (pagingInfo && typeof pagingInfo === 'object') {
+                  totalPages = pagingInfo.pages || 1;
+                  if (currentPage === 1) {
+                    console.log(`[Feedback] Cafe ${cafe.name} (${cafe.cafeId}): ${pagingInfo.total_records} total records across ${totalPages} pages`);
+                  }
+                }
+              } else if (Array.isArray(response.data)) {
+                // Fallback: if data is directly an array (old API format?)
+                pageFeedbacks = response.data.filter((log: any) => log.log_event === 'FEEDBACK');
               } else {
-                console.warn(`[Feedback] log_list is not an array for cafe ${cafe.name} (${cafe.cafeId}):`, typeof logList);
+                console.warn(`[Feedback] Unexpected response.data structure for cafe ${cafe.name} (${cafe.cafeId}):`, 
+                  typeof response.data);
+                // Safely log the data
+                try {
+                  const dataStr = JSON.stringify(response.data);
+                  console.warn(`[Feedback] Data content:`, dataStr?.substring(0, 200) ?? 'Unable to serialize');
+                } catch (e) {
+                  console.warn(`[Feedback] Could not stringify response.data (circular or error)`);
+                }
               }
-            } else if (Array.isArray(response.data)) {
-              // Fallback: if data is directly an array (old API format?)
-              feedbacks = response.data.filter((log: any) => log.log_event === 'FEEDBACK');
-              console.log(`[Feedback] Filtered ${feedbacks.length} feedback(s) from ${response.data.length} total logs (fallback format)`);
-            } else {
-              console.warn(`[Feedback] Unexpected response.data structure for cafe ${cafe.name} (${cafe.cafeId}):`, 
-                typeof response.data);
-              // Safely log the data
-              try {
-                const dataStr = JSON.stringify(response.data);
-                console.warn(`[Feedback] Data content:`, dataStr?.substring(0, 200) ?? 'Unable to serialize');
-              } catch (e) {
-                console.warn(`[Feedback] Could not stringify response.data (circular or error)`);
+              
+              // Add this page's feedbacks to the total
+              allFeedbacks.push(...pageFeedbacks);
+              
+              if (currentPage === 1 && totalPages > 1) {
+                console.log(`[Feedback] Fetching page ${currentPage}/${totalPages} for cafe ${cafe.name}, got ${pageFeedbacks.length} feedbacks`);
+              } else if (totalPages > 1) {
+                console.log(`[Feedback] Fetching page ${currentPage}/${totalPages} for cafe ${cafe.name}, got ${pageFeedbacks.length} feedbacks`);
               }
-            }
+              
+              currentPage++;
+              
+              // Safety check: prevent infinite loops
+              if (currentPage > MAX_PAGES) {
+                console.warn(`[Feedback] Reached maximum page limit (${MAX_PAGES}) for cafe ${cafe.name}`);
+                break;
+              }
+              
+            } while (currentPage <= totalPages);
+            
+            console.log(`[Feedback] Total: Filtered ${allFeedbacks.length} feedback(s) from ${totalPages} page(s) for cafe ${cafe.name} (${cafe.cafeId})`);
 
             return {
               cafeDbId: cafe.id,
               cafeName: cafe.name,
               cafeId: cafe.cafeId,
-              feedbacks,
+              feedbacks: allFeedbacks,
             };
           } catch (error) {
             console.error(`[Feedback] Exception for cafe ${cafe.name} (${cafe.cafeId}):`, error);
