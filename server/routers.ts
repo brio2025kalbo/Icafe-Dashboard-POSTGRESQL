@@ -2323,7 +2323,7 @@ export const appRouter = router({
               cafeDbId: cafe.id,
               cafeName: cafe.name,
               cafeId: cafe.cafeId,
-              feedbacks: response.data || [],
+              feedbacks: Array.isArray(response.data) ? response.data : [],
             };
           } catch (error) {
             console.error(`[Feedback] Exception for cafe ${cafe.name} (${cafe.cafeId}):`, error);

@@ -159,7 +159,9 @@ function DashboardLayoutContent({
 
     let unreadCount = 0;
     allCafeFeedbacks.forEach((cafeFeedback) => {
-      cafeFeedback.feedbacks.forEach((feedback: FeedbackLog) => {
+      // Defensive check: ensure feedbacks is an array
+      const feedbacks = Array.isArray(cafeFeedback.feedbacks) ? cafeFeedback.feedbacks : [];
+      feedbacks.forEach((feedback: FeedbackLog) => {
         const key = `${cafeFeedback.cafeDbId}-${feedback.log_id}`;
         const isRead = readStatusMap.get(key) || false;
         if (!isRead) {
