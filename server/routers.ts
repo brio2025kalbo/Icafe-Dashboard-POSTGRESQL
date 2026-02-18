@@ -741,85 +741,9 @@ export const appRouter = router({
         const results = await Promise.all(
           allCafes.map(async (cafe) => {
             try {
-              // 🔥 Fetch billing logs to extract refund username + reason
-              // Use 00:00:00 to cover graveyard shifts that start before 6am
-              const businessStart = `${dateStr} 00:00:00`;
-              const businessEnd = `${nextDayStr} 05:59:59`;
-
-              let refundLogs: any[] = [];
-
-              try {
-                let page = 1;
-                let allLogs: any[] = [];
-
-                while (true) {
-                  const billing = await icafe.getBillingLogs(
-                    { cafeId: cafe.cafeId, apiKey: cafe.apiKey },
-                    {
-                      date_start: businessStart,
-                      date_end: businessEnd,
-                      page,
-                      limit: 100,
-                      event: 'TOPUP',  // Filter for TOPUP events only (includes refunds)
-                    }
-                  );
-
-                  const logs = billing?.data?.log_list || [];
-                  const pagingInfo = billing?.data?.paging_info;
-
-                  if (logs.length === 0) break;
-
-                  allLogs.push(...logs);
-                  
-                  console.log(`[${cafe.name}] Fetched page ${page}: ${logs.length} TOPUP logs (Total so far: ${allLogs.length})`);
-                  if (pagingInfo && page === 1) {
-                    console.log(`[${cafe.name}] Paging info: total_records=${pagingInfo.total_records}, pages=${pagingInfo.pages}`);
-                  }
-
-                  // Check if we've reached the last page using paging_info
-                  if (pagingInfo && page >= Number(pagingInfo.pages)) {
-                    console.log(`[${cafe.name}] Reached last page (${page}/${pagingInfo.pages})`);
-                    break;
-                  }
-                  
-                  // Safety check: if no paging_info, fall back to checking log count
-                  if (!pagingInfo && logs.length < 100) break;
-
-                  page++;
-                }
-
-                console.log(`[${cafe.name}] Total TOPUP logs fetched: ${allLogs.length}`);
-
-                // Filter for refunds (TOPUP events with "comment:" in details)
-                // Refunds have pattern: "topup from cafe, comment: <reason>"
-                // Regular topups: "topup from cafe" (no comment)
-                refundLogs = allLogs
-                  .filter((log: any) => {
-                    const details = (log.log_details || "").toLowerCase();
-                    const money = Number(log.log_money || 0);
-                    // Check for "comment:" keyword (unique to refunds) and negative amount
-                    return details.includes("comment:") && money < 0;
-                  })
-                  .map((log: any) => ({
-                    member: log.log_member_account,
-                    amount: Number(log.log_money || 0), // Preserve original negative value
-                    reason: log.log_details || "",
-                    staff: log.log_staff_name,
-                    time: log.log_date_local, // Use local time instead of UTC
-                    event: log.log_event,
-                  }));
-
-                console.log(`[${cafe.name}] Refund Logs found: ${refundLogs.length}`);
-                if (refundLogs.length > 0) {
-                  refundLogs.forEach((log, idx) => {
-                    console.log(`  [${idx}] Member: ${log.member}, Staff: ${log.staff}, Amount: ${log.amount}, Reason: "${log.reason}"`);
-                  });
-                }
-
-              } catch (err) {
-                console.error("Refund log fetch failed:", err);
-              }
-
+              // Refund logs are now fetched separately via todayRefundLogs endpoint
+              // This prevents blocking the main todayRevenue query
+              const refundLogs: any[] = [];
 
               
 
@@ -1462,6 +1386,106 @@ export const appRouter = router({
             }
           })
         );
+        return { date: dateStr, cafes: results };
+      }),
+
+      // Separate endpoint for fetching refund logs - runs independently to avoid blocking todayRevenue
+      todayRefundLogs: protectedProcedure
+      .query(async ({ ctx }) => {
+        const allCafes = await getAllUserCafesWithKeys(ctx.user.id);
+        const BUSINESS_DAY_START_HOUR = 6;
+        const PH_OFFSET_MS = 8 * 60 * 60 * 1000;
+        const nowUtc = new Date();
+        const nowPH = new Date(nowUtc.getTime() + PH_OFFSET_MS);
+        const currentHourPH = nowPH.getUTCHours();
+        const businessDate = new Date(Date.UTC(
+          nowPH.getUTCFullYear(),
+          nowPH.getUTCMonth(),
+          nowPH.getUTCDate()
+        ));
+        if (currentHourPH < BUSINESS_DAY_START_HOUR) {
+          businessDate.setUTCDate(businessDate.getUTCDate() - 1);
+        }
+        const fmtUTC = (d: Date) => `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
+        const dateStr = fmtUTC(businessDate);
+        const nextDay = new Date(businessDate);
+        nextDay.setUTCDate(nextDay.getUTCDate() + 1);
+        const nextDayStr = fmtUTC(nextDay);
+
+        const businessStart = `${dateStr} 00:00:00`;
+        const businessEnd = `${nextDayStr} 05:59:59`;
+
+        const results = await Promise.all(
+          allCafes.map(async (cafe) => {
+            try {
+              let refundLogs: any[] = [];
+              let page = 1;
+              let allLogs: any[] = [];
+
+              while (true) {
+                const billing = await icafe.getBillingLogs(
+                  { cafeId: cafe.cafeId, apiKey: cafe.apiKey },
+                  {
+                    date_start: businessStart,
+                    date_end: businessEnd,
+                    page,
+                    limit: 100,
+                    event: 'TOPUP',
+                  }
+                );
+
+                const logs = billing?.data?.log_list || [];
+                const pagingInfo = billing?.data?.paging_info;
+
+                if (logs.length === 0) break;
+
+                allLogs.push(...logs);
+
+                if (pagingInfo && page >= Number(pagingInfo.pages)) {
+                  break;
+                }
+
+                if (!pagingInfo && logs.length < 100) break;
+
+                page++;
+              }
+
+              refundLogs = allLogs
+                .filter((log: any) => {
+                  const details = (log.log_details || "").toLowerCase();
+                  const money = Number(log.log_money || 0);
+                  return details.includes("comment:") && money < 0;
+                })
+                .map((log: any) => ({
+                  member: log.log_member_account,
+                  amount: Number(log.log_money || 0),
+                  reason: log.log_details || "",
+                  staff: log.log_staff_name,
+                  time: log.log_date_local,
+                  event: log.log_event,
+                }));
+
+              return {
+                cafeDbId: cafe.id,
+                cafeName: cafe.name,
+                cafeId: cafe.cafeId,
+                refundLogs,
+                success: true,
+              };
+            } catch (err) {
+              console.error(`[${cafe.name}] Refund log fetch failed:`, err);
+              return {
+                cafeDbId: cafe.id,
+                cafeName: cafe.name,
+                cafeId: cafe.cafeId,
+                refundLogs: [],
+                success: false,
+                error: err instanceof Error ? err.message : 'Unknown error',
+              };
+            }
+          })
+        );
+
         return { date: dateStr, cafes: results };
       }),
 

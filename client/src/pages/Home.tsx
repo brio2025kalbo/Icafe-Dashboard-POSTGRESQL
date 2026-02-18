@@ -156,6 +156,12 @@ const toggleRefundStaff = (cafeId: number, staff: string) => {
     refetchInterval: 30000,
   });
 
+  // Fetch refund logs separately to avoid blocking todayRevenue query
+  const todayRefundLogsQuery = trpc.reports.todayRefundLogs.useQuery(undefined, {
+    enabled: cafes.length > 0,
+    refetchInterval: 60000, // Less frequent updates for refund logs
+  });
+
   // Track last updated time
   useEffect(() => {
     if (todayRevenueQuery.dataUpdatedAt) {
@@ -217,7 +223,28 @@ const toggleRefundStaff = (cafeId: number, staff: string) => {
         ? cafesData
         : cafesData.filter((c) => c.cafeDbId === selectedCafeId);        
 
-        
+    // Merge refund logs data with cafe data
+    const refundLogsData = todayRefundLogsQuery.data?.cafes || [];
+    const mergedCafes = filtered.map(cafe => {
+      const refundData = refundLogsData.find(r => r.cafeDbId === cafe.cafeDbId);
+      if (refundData && refundData.refundLogs && refundData.refundLogs.length > 0) {
+        // Enrich cafe with refund items from refund logs
+        const refundItems = refundData.refundLogs.map((log: any) => {
+          const memberInfo = log.member ? `Member: ${log.member} - ` : '';
+          const detailsWithMember = `${memberInfo}${log.reason}`;
+          return {
+            amount: Math.abs(log.amount),
+            details: detailsWithMember,
+            staff: log.staff,
+            member: log.member,
+            reason: log.reason,
+            time: log.time,
+          };
+        });
+        return { ...cafe, refundItems };
+      }
+      return cafe;
+    });
         
     const combined = {
       totalCash: 0,
@@ -232,7 +259,7 @@ const toggleRefundStaff = (cafeId: number, staff: string) => {
       expenseCount: 0,
     };
 
-    filtered.forEach((cafe) => {
+    mergedCafes.forEach((cafe) => {
       combined.totalCash += cafe.totalCash;
       combined.profit += cafe.profit;
       combined.salesTotal += cafe.salesTotal;
@@ -261,10 +288,10 @@ const toggleRefundStaff = (cafeId: number, staff: string) => {
     return {
       combined,
       diff,
-      perCafe: filtered,
+      perCafe: mergedCafes,
       date: todayRevenueQuery.data.date,
     };
-  }, [todayRevenueQuery.data, selectedCafeId]);
+  }, [todayRevenueQuery.data, todayRefundLogsQuery.data, selectedCafeId]);
 
   // Top products start
   const topProducts = useMemo(() => {
