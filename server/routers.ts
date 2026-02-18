@@ -746,7 +746,8 @@ export const appRouter = router({
           allCafes.map(async (cafe) => {
             try {
               // 🔥 Fetch billing logs to extract refund username + reason
-              const businessStart = `${dateStr} 06:00:00`;
+              // Use 00:00:00 to cover graveyard shifts that start before 6am
+              const businessStart = `${dateStr} 00:00:00`;
               const businessEnd = `${nextDayStr} 05:59:59`;
 
               let refundLogs: any[] = [];
