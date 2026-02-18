@@ -186,31 +186,58 @@ async function sendScheduledReport(setting: any) {
       businessDate,
     });
 
+    //CHAD START
+    // Build journal entry lines
+    const lines: Array<{
+      description: string;
+      amount: number;
+      postingType: "Debit" | "Credit";
+      accountRef: { name: string; value: string };
+    }> = [];
+
+    // Use default accounts if not provided (user should configure these in settings)
+    const cashAccountId = "202"; // Default to first account (user should configure)
+    const revenueAccountId = "206"; // Default to second account (user should configure) 
+    
+    
+    // Add shift breakdown lines
+    report.shifts.forEach((shift) => {
+      console.log("QB SHIFTS:", report.shifts);
+
+      const timeRange =
+      shift.startTime && shift.endTime
+        ? `${shift.startTime} - ${shift.endTime}`
+        : "Unknown";
+
+      // Debit: Cash (asset increases)
+      lines.push({
+        description: `${cafe.name} - ${shift.staffName ?? "Unknown"} (${timeRange}) - Cash`,
+        amount: shift.cash,
+        postingType: "Debit",
+        accountRef: { name: "Cash", value: cashAccountId },
+      });
+
+      // Credit: Revenue (income increases)
+      lines.push({
+        description: `${cafe.name} - ${shift.staffName ?? "Unknown"} (${timeRange}) - Revenue`,
+        amount: shift.cash,
+        postingType: "Credit",
+        accountRef: { name: "Revenue", value: revenueAccountId },
+      });
+    });
+    //CHAD END
+
     const totalRevenue = report.totals.sales + report.totals.topups;
 
     // Convert report to journal entry format
     const journalEntry = {
       txnDate: businessDate,
       //: `${cafe.name}-${businessDate}`,
-      docNumber: buildDocNumber(cafe.name, businessDate),
-      privateNote: `Auto-generated report for ${cafe.name} on ${businessDate} (${report.shiftCount} shifts)`,
+      //docNumber: buildDocNumber(cafe.name, businessDate),
+      docNumber: (`G${cafe.cafeId}-${businessDate.replace(/-/g, "")}`).substring(0, 21),
+      privateNote: `Auto-generated report for ${cafe.name} on ${businessDate} (${report.shiftCount} shifts)`, 
+      lines,     
       /*lines: [
-        // Debit: Cash
-        {
-          description: `Cash - ${cafe.name}`,
-          amount: report.totals.cash,
-          postingType: "Debit" as const,
-          accountRef: { name: "Cash", value: "202" }, // Default cash account
-        },
-        // Credit: Revenue
-        {
-          description: `Revenue - ${cafe.name}`,
-          amount: report.totals.sales + report.totals.topups,
-          postingType: "Credit" as const,
-          accountRef: { name: "Revenue", value: "206" }, // Default revenue account
-        },
-      ],*/ 
-      lines: [
         {
           description: `Cash - ${cafe.name}`,
           amount: totalRevenue,
@@ -223,7 +250,7 @@ async function sendScheduledReport(setting: any) {
           postingType: "Credit",
           accountRef: { name: "Revenue", value: "206" },
         },
-      ],
+      ],*/
 
     };
 
