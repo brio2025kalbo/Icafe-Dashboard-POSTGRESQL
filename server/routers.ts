@@ -1,4 +1,4 @@
-import { COOKIE_NAME, MAX_FEEDBACK_LIMIT, DEFAULT_FEEDBACK_LIMIT } from "@shared/const";
+import { COOKIE_NAME, MAX_FEEDBACK_LIMIT, DEFAULT_FEEDBACK_LIMIT, FEEDBACK_READ_STATUS_ALL } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 //import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
@@ -2283,7 +2283,7 @@ export const appRouter = router({
               apiKey: cafe.apiKey,
             },
             {
-              read: -1, // Get all feedbacks
+              read: FEEDBACK_READ_STATUS_ALL, // Get all feedbacks
               page: 1,
               limit: input.limit,
             }

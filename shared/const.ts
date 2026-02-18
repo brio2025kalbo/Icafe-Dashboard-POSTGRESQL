@@ -7,3 +7,4 @@ export const NOT_ADMIN_ERR_MSG = 'You do not have required permission (10002)';
 // Feedback configuration constants
 export const MAX_FEEDBACK_LIMIT = 500; // Maximum feedbacks per cafe to prevent memory issues
 export const DEFAULT_FEEDBACK_LIMIT = 100; // Default limit, sufficient for most cafes
+export const FEEDBACK_READ_STATUS_ALL = -1; // Special value to get all feedbacks regardless of read status

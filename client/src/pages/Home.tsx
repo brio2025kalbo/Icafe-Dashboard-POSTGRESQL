@@ -72,6 +72,7 @@ export default function Home() {
 
   // Configuration for feedback toast notifications
   const MAX_TOAST_FEEDBACKS = 2; // Number of feedbacks to show details for in toast
+  const MAX_TOAST_SUBJECT_LENGTH = 40; // Maximum characters to show for feedback subject in toast
 
   // Fetch feedbacks and read statuses for toast notifications
   const { data: allCafeFeedbacks } = trpc.feedbacks.allCafes.useQuery(
@@ -133,8 +134,8 @@ export default function Home() {
             </p>
             {unreadFeedbacks.slice(0, MAX_TOAST_FEEDBACKS).map((fb, i) => (
               <p key={i} className="text-sm text-muted-foreground">
-                <span className="font-medium">{fb.cafeName}:</span> {fb.subject.substring(0, 40)}
-                {fb.subject.length > 40 ? "..." : ""}
+                <span className="font-medium">{fb.cafeName}:</span> {fb.subject.substring(0, MAX_TOAST_SUBJECT_LENGTH)}
+                {fb.subject.length > MAX_TOAST_SUBJECT_LENGTH ? "..." : ""}
               </p>
             ))}
             {newCount > MAX_TOAST_FEEDBACKS && (

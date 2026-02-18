@@ -1,5 +1,9 @@
 /**
  * Feedback-related types shared between client and server
+ * 
+ * Note: Property names use snake_case to match the iCafeCloud API response format.
+ * These are direct mappings from the API and should not be transformed to camelCase
+ * to maintain consistency with the external API contract.
  */
 
 export interface FeedbackLog {
