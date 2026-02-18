@@ -2294,7 +2294,7 @@ export const appRouter = router({
             // Check if the response indicates an error
             if (response.code && response.code >= 400) {
               console.error(`[Feedback] API error for cafe ${cafe.name} (${cafe.cafeId}): ${response.code} - ${response.message}`);
-              // Return empty feedbacks for this cafe with error logged
+              // Return empty feedbacks for this cafe with error logged and returned to client
               return {
                 cafeDbId: cafe.id,
                 cafeName: cafe.name,

@@ -52,7 +52,9 @@ async function icafeRequest<T = unknown>(
     if (responseData && typeof responseData === 'object' && 'code' in responseData) {
       const errorCode = responseData.code as number;
       if (errorCode >= 400) {
-        const errorMessage = (responseData as any).message || 'Unknown error';
+        const errorMessage = ('message' in responseData && typeof responseData.message === 'string')
+          ? responseData.message
+          : 'Unknown error';
         console.error(`[iCafe API] Error code ${errorCode} in response body: ${errorMessage}`);
         return { code: errorCode, message: errorMessage };
       }
