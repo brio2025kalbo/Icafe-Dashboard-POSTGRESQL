@@ -793,6 +793,11 @@ export const appRouter = router({
                     event: log.log_event,
                   }));
 
+                console.log(`[${cafe.name}] Refund Logs found:`, refundLogs.length);
+                refundLogs.forEach((log, idx) => {
+                  console.log(`  [${idx}] Staff: ${log.staff}, Amount: ${log.amount}, Reason: "${log.reason}", Event: ${log.event}`);
+                });
+
               } catch (err) {
                 console.error("Refund log fetch failed:", err);
               }
@@ -1016,6 +1021,11 @@ export const appRouter = router({
 
                 const shiftOrder = shiftResults.map(s => s.staffName);
 
+                console.log(`[${cafe.name}] Refund Items before enrichment:`, combined.refundItems.length);
+                combined.refundItems.forEach((item, idx) => {
+                  console.log(`  [${idx}] Staff: ${item.staff}, Amount: ${item.amount}, Details: "${item.details}"`);
+                });
+
                 // Constants for refund matching
                 const AMOUNT_MATCH_TOLERANCE = 0.01; // Tolerance for floating point comparison
                 
@@ -1040,6 +1050,8 @@ export const appRouter = router({
                     const matchingLog = refundLogs[matchingLogIndex];
                     usedLogIndices.add(matchingLogIndex);
                     
+                    console.log(`  ✓ Matched: ${item.staff} ${item.amount} with log[${matchingLogIndex}] reason: "${matchingLog.reason}"`);
+                    
                     if (matchingLog.reason) {
                       return {
                         ...item,
@@ -1047,9 +1059,16 @@ export const appRouter = router({
                         details: matchingLog.reason, // Use reason as details
                       };
                     }
+                  } else {
+                    console.log(`  ✗ No match for: ${item.staff} ${item.amount}`);
                   }
                   
                   return item;
+                });
+
+                console.log(`[${cafe.name}] Refund Items after enrichment:`, combined.refundItems.length);
+                combined.refundItems.forEach((item, idx) => {
+                  console.log(`  [${idx}] Staff: ${item.staff}, Amount: ${item.amount}, Details: "${item.details}"`);
                 });
 
                 const fullDayReport = await icafe.getReportData(
