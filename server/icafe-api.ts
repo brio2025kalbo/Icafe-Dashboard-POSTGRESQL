@@ -38,9 +38,9 @@ async function icafeRequest<T = unknown>(
   // Ensure API key is trimmed to avoid whitespace issues
   const apiKey = options.apiKey.trim();
   
-  // Debug logging (only in development)
+  // Debug logging (only in development, without exposing key content)
   if (process.env.NODE_ENV === 'development') {
-    console.log(`[iCafe API] API Key length: ${apiKey.length}, starts with: ${apiKey.substring(0, 4)}...`);
+    console.log(`[iCafe API] API Key present: ${apiKey.length > 0}, length: ${apiKey.length}`);
   }
 
   try {
