@@ -16,6 +16,7 @@ import {
   CreditCard,
   RefreshCw,
   ArrowDownRight,
+  Gamepad2,
 } from "lucide-react";
 import { useMemo, useState, useEffect } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -352,6 +353,42 @@ const toggleRefundStaff = (cafeId: number, staff: string) => {
   }, [todayRevenueQuery.data, selectedCafeId]);
   // Top pc end
 
+  // Top games start
+  const topGames = useMemo(() => {
+    if (!todayRevenueQuery.data) return [];
+  
+    const cafesData = todayRevenueQuery.data.cafes;
+  
+    const filtered =
+      selectedCafeId === "all"
+        ? cafesData
+        : cafesData.filter(c => c.cafeDbId === selectedCafeId);
+  
+    const map: Record<string, { game: string; hours: number; revenue: number }> = {};
+  
+    filtered.forEach((cafe: any) => {
+      // When backend provides topGames data (e.g., top_five_games_played), use it here:
+      // (cafe.topGames || []).forEach((game: any) => { ... });
+      // For now, this will return empty array until backend support is added
+      (cafe.topGames || []).forEach((game: any) => {
+        if (!map[game.game_name]) {
+          map[game.game_name] = { 
+            game: game.game_name, 
+            hours: 0,
+            revenue: 0 
+          };
+        }
+        map[game.game_name].hours += Number(game.hours_played || 0);
+        map[game.game_name].revenue += Number(game.revenue || 0);
+      });
+    });
+  
+    return Object.values(map)
+      .sort((a, b) => b.hours - a.hours)
+      .slice(0, 10);
+  }, [todayRevenueQuery.data, selectedCafeId]);
+  // Top games end
+
   if (cafesLoading) {
     return (
       <div className="space-y-6">
@@ -586,6 +623,41 @@ const toggleRefundStaff = (cafeId: number, staff: string) => {
               ))}
           </CardContent>
           </Card>          
+          <Card className="bg-card border-border/50 lg:col-span-1">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <Gamepad2 className="h-4 w-4 text-primary" />
+                Top Played Games
+              </CardTitle>
+            </CardHeader>
+
+            <CardContent className="space-y-1 max-h-64 overflow-y-auto">
+              {todayRevenueQuery.isLoading && (
+                <Skeleton className="h-16 w-full" />
+              )}
+
+              {!todayRevenueQuery.isLoading &&
+                (topGames.length > 0 ? (
+                  topGames.map((g, i) => (
+                    <div
+                      key={i}
+                      className="flex justify-between text-sm text-muted-foreground"
+                    >
+                      <span>
+                        {i + 1}. {g.game}
+                      </span>
+                      <span className="text-green-400 font-medium">
+                        {g.hours.toFixed(1)}h
+                      </span>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-sm text-muted-foreground">
+                    No game data available yet
+                  </div>
+                ))}
+            </CardContent>
+          </Card>
 
 
         </div>       
