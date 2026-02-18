@@ -2325,13 +2325,18 @@ export const appRouter = router({
             if (response.data && typeof response.data === 'object' && 'log_list' in response.data) {
               const logList = (response.data as any).log_list;
               if (Array.isArray(logList)) {
-                feedbacks = logList;
+                // Filter to only include FEEDBACK events (exclude RESTOCKNOTIFY, etc.)
+                const allLogs = logList;
+                feedbacks = allLogs.filter((log: any) => log.log_event === 'FEEDBACK');
+                console.log(`[Feedback] Filtered ${feedbacks.length} feedback(s) from ${allLogs.length} total logs for cafe ${cafe.name} (${cafe.cafeId})`);
               } else {
                 console.warn(`[Feedback] log_list is not an array for cafe ${cafe.name} (${cafe.cafeId}):`, typeof logList);
               }
             } else if (Array.isArray(response.data)) {
               // Fallback: if data is directly an array (old API format?)
-              feedbacks = response.data;
+              const allLogs = response.data;
+              feedbacks = allLogs.filter((log: any) => log.log_event === 'FEEDBACK');
+              console.log(`[Feedback] Filtered ${feedbacks.length} feedback(s) from ${allLogs.length} total logs (fallback format)`);
             } else {
               console.warn(`[Feedback] Unexpected response.data structure for cafe ${cafe.name} (${cafe.cafeId}):`, 
                 typeof response.data);
