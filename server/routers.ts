@@ -1390,6 +1390,8 @@ export const appRouter = router({
       }),
 
       // Separate endpoint for fetching refund logs - runs independently to avoid blocking todayRevenue
+      // Returns refund logs for all user cafes for the current business day
+      // Business day is defined as 6:00 AM to 5:59 AM the next day (Philippine time, UTC+8)
       todayRefundLogs: protectedProcedure
       .query(async ({ ctx }) => {
         const allCafes = await getAllUserCafesWithKeys(ctx.user.id);

@@ -224,12 +224,17 @@ const toggleRefundStaff = (cafeId: number, staff: string) => {
         : cafesData.filter((c) => c.cafeDbId === selectedCafeId);        
 
     // Merge refund logs data with cafe data
+    // Convert refundLogsData to Map for O(1) lookups instead of O(n) with .find()
     const refundLogsData = todayRefundLogsQuery.data?.cafes || [];
+    const refundLogsMap = new Map(
+      refundLogsData.map(r => [r.cafeDbId, r])
+    );
+    
     const mergedCafes = filtered.map(cafe => {
-      const refundData = refundLogsData.find(r => r.cafeDbId === cafe.cafeDbId);
+      const refundData = refundLogsMap.get(cafe.cafeDbId);
       if (refundData && refundData.refundLogs && refundData.refundLogs.length > 0) {
         // Enrich cafe with refund items from refund logs
-        const refundItems = refundData.refundLogs.map((log: any) => {
+        const refundItems = refundData.refundLogs.map((log) => {
           const memberInfo = log.member ? `Member: ${log.member} - ` : '';
           const detailsWithMember = `${memberInfo}${log.reason}`;
           return {
