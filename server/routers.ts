@@ -2329,7 +2329,7 @@ export const appRouter = router({
               // Safely log the data
               try {
                 const dataStr = JSON.stringify(response.data);
-                console.warn(`[Feedback] Data content:`, dataStr.substring(0, 200));
+                console.warn(`[Feedback] Data content:`, dataStr?.substring(0, 200) ?? 'Unable to serialize');
               } catch (e) {
                 console.warn(`[Feedback] Could not stringify response.data (circular or error)`);
               }
