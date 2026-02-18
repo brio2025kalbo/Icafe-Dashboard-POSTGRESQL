@@ -1044,54 +1044,24 @@ export const appRouter = router({
                   console.log(`  [${idx}] Staff: ${item.staff}, Amount: ${item.amount}, Details: "${item.details}"`);
                 });
 
-                // Constants for refund matching
-                const AMOUNT_MATCH_TOLERANCE = 0.01; // Tolerance for floating point comparison
-                
-                // Enrich refundItems with reasons from refundLogs
-                // Track matched logs to avoid duplicate matching
-                // Note: Matching is done by staff name and amount. In cases where multiple refunds 
-                // have identical staff and amount, the first available match is used. This is a 
-                // limitation due to lack of unique transaction IDs in the data structure.
-                const usedLogIndices = new Set<number>();
-                
-                combined.refundItems = combined.refundItems.map((item: any) => {
-                  // Try to find a matching refund log entry that hasn't been used yet
-                  // Note: refundLogs amounts are negative, item amounts are positive
-                  // Using log.amount + item.amount to compare: -100 + 100 = 0 for a match
-                  const matchingLogIndex = refundLogs.findIndex((log: any, index: number) => {
-                    const staffMatch = (log.staff || "").trim().toLowerCase() === (item.staff || "").trim().toLowerCase();
-                    const amountMatch = Math.abs(log.amount + item.amount) <= AMOUNT_MATCH_TOLERANCE;
-                    const notUsed = !usedLogIndices.has(index);
+                // Replace aggregated refundItems with individual items from refundLogs
+                // This ensures each refund transaction is displayed separately in the UI
+                if (refundLogs.length > 0) {
+                  combined.refundItems = refundLogs.map((log: any) => {
+                    // Format details to include member and reason
+                    const memberInfo = log.member ? `Member: ${log.member} - ` : '';
+                    const detailsWithMember = `${memberInfo}${log.reason}`;
                     
-                    if (!notUsed) return false;
-                    
-                    return staffMatch && amountMatch;
+                    return {
+                      amount: Math.abs(log.amount), // Convert negative amount to positive for display
+                      details: detailsWithMember,
+                      staff: log.staff,
+                      member: log.member,
+                      reason: log.reason,
+                      time: log.time,
+                    };
                   });
-                  
-                  if (matchingLogIndex !== -1) {
-                    const matchingLog = refundLogs[matchingLogIndex];
-                    usedLogIndices.add(matchingLogIndex);
-                    
-                    console.log(`  ✓ Matched: ${item.staff} ${item.amount} with member: "${matchingLog.member}", reason: "${matchingLog.reason}"`);
-                    
-                    if (matchingLog.reason) {
-                      // Format details to include member and reason
-                      const memberInfo = matchingLog.member ? `Member: ${matchingLog.member} - ` : '';
-                      const detailsWithMember = `${memberInfo}${matchingLog.reason}`;
-                      
-                      return {
-                        ...item,
-                        member: matchingLog.member,
-                        reason: matchingLog.reason,
-                        details: detailsWithMember, // Include member in details
-                      };
-                    }
-                  } else {
-                    console.log(`  ✗ No match for: ${item.staff} ${item.amount}`);
-                  }
-                  
-                  return item;
-                });
+                }
 
                 console.log(`[${cafe.name}] Refund Items after enrichment: ${combined.refundItems.length}`);
                 combined.refundItems.forEach((item, idx) => {
