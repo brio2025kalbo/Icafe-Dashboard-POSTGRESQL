@@ -779,10 +779,10 @@ export const appRouter = router({
 
                 refundLogs = allLogs
                   .filter((log: any) => {
-                    const event = (log.log_event || "").toLowerCase();
+                    const logEvent = (log.log_event || "").toLowerCase();
                     const money = Number(log.log_money || 0);
                     // Filter for refund events (negative money) or events that explicitly mention refund
-                    return money < 0 || event.includes("refund");
+                    return money < 0 || logEvent.includes("refund");
                   })
                   .map((log: any) => ({
                     member: log.log_member_account,
@@ -1016,17 +1016,22 @@ export const appRouter = router({
 
                 const shiftOrder = shiftResults.map(s => s.staffName);
 
+                // Constants for refund matching
+                const AMOUNT_MATCH_TOLERANCE = 0.01; // Tolerance for floating point comparison
+                
                 // Enrich refundItems with reasons from refundLogs
                 // Track matched logs to avoid duplicate matching
+                // Note: Matching is done by staff name and amount. In cases where multiple refunds 
+                // have identical staff and amount, the first available match is used. This is a 
+                // limitation due to lack of unique transaction IDs in the data structure.
                 const usedLogIndices = new Set<number>();
                 
                 combined.refundItems = combined.refundItems.map((item: any) => {
                   // Try to find a matching refund log entry that hasn't been used yet
-                  // Match by staff name and amount (since we don't have other unique identifiers)
                   const matchingLogIndex = refundLogs.findIndex((log: any, index: number) => 
                     !usedLogIndices.has(index) &&
                     log.staff === item.staff && 
-                    Math.abs(log.amount - item.amount) < 0.01 // Allow small floating point differences
+                    Math.abs(log.amount - item.amount) < AMOUNT_MATCH_TOLERANCE
                   );
                   
                   if (matchingLogIndex !== -1) {
