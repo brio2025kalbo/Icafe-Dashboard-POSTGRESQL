@@ -171,6 +171,15 @@ export default function Feedbacks() {
         {filteredFeedbacks.map((cafeFeedback) => {
           const unreadCount = unreadCounts.get(cafeFeedback.cafeDbId) || 0;
           
+          // Debug logging for each cafe card
+          console.log('[Feedbacks.tsx] Rendering cafe card:', {
+            cafeName: cafeFeedback.cafeName,
+            cafeDbId: cafeFeedback.cafeDbId,
+            feedbacksLength: cafeFeedback.feedbacks.length,
+            hasError: !!cafeFeedback.error,
+            feedbacksType: Array.isArray(cafeFeedback.feedbacks) ? 'array' : typeof cafeFeedback.feedbacks,
+          });
+          
           return (
             <Card key={cafeFeedback.cafeDbId} className="overflow-hidden">
               <CardHeader className="bg-muted/50">
