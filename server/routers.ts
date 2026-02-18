@@ -2319,11 +2319,19 @@ export const appRouter = router({
               };
             }
 
+            // Ensure feedbacks is an array
+            const feedbacks = Array.isArray(response.data) ? response.data : [];
+            if (!Array.isArray(response.data)) {
+              console.warn(`[Feedback] Non-array response.data for cafe ${cafe.name} (${cafe.cafeId}):`, 
+                typeof response.data, 
+                JSON.stringify(response.data).substring(0, 200));
+            }
+
             return {
               cafeDbId: cafe.id,
               cafeName: cafe.name,
               cafeId: cafe.cafeId,
-              feedbacks: Array.isArray(response.data) ? response.data : [],
+              feedbacks,
             };
           } catch (error) {
             console.error(`[Feedback] Exception for cafe ${cafe.name} (${cafe.cafeId}):`, error);
