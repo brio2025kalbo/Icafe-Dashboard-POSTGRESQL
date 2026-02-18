@@ -464,7 +464,7 @@ export async function updateCafe(
   const updateSet: Record<string, unknown> = {};
   if (data.name !== undefined) updateSet.name = data.name;
   if (data.cafeId !== undefined) updateSet.cafeId = data.cafeId;
-  if (data.apiKey != null) {
+  if (data.apiKey !== undefined && data.apiKey !== null) {
     const trimmedApiKey = data.apiKey.trim();
     if (!trimmedApiKey) {
       throw new Error("API key cannot be empty");
