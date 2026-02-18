@@ -790,11 +790,15 @@ export const appRouter = router({
 
                 console.log(`[${cafe.name}] Total TOPUP logs fetched: ${allLogs.length}`);
 
-                // Filter for refunds (negative TOPUP transactions)
+                // Filter for refunds (TOPUP events with "comment:" in details)
+                // Refunds have pattern: "topup from cafe, comment: <reason>"
+                // Regular topups: "topup from cafe" (no comment)
                 refundLogs = allLogs
                   .filter((log: any) => {
+                    const details = (log.log_details || "").toLowerCase();
                     const money = Number(log.log_money || 0);
-                    return money < 0;  // Since we already filtered for TOPUP, just check for negative
+                    // Check for "comment:" keyword (unique to refunds) and negative amount
+                    return details.includes("comment:") && money < 0;
                   })
                   .map((log: any) => ({
                     member: log.log_member_account,
