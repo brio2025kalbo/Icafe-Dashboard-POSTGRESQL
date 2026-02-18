@@ -364,7 +364,7 @@ const toggleRefundStaff = (cafeId: number, staff: string) => {
         ? cafesData
         : cafesData.filter(c => c.cafeDbId === selectedCafeId);
   
-    const map: Record<string, { game: string; hours: number; revenue: number }> = {};
+    const map: Record<string, { game: string; hours: number }> = {};
   
     filtered.forEach((cafe: any) => {
       // When backend provides topGames data (e.g., top_five_games_played), use it here:
@@ -375,11 +375,9 @@ const toggleRefundStaff = (cafeId: number, staff: string) => {
           map[game.game_name] = { 
             game: game.game_name, 
             hours: 0,
-            revenue: 0 
           };
         }
         map[game.game_name].hours += Number(game.hours_played || 0);
-        map[game.game_name].revenue += Number(game.revenue || 0);
       });
     });
   
@@ -640,7 +638,7 @@ const toggleRefundStaff = (cafeId: number, staff: string) => {
                 (topGames.length > 0 ? (
                   topGames.map((g, i) => (
                     <div
-                      key={i}
+                      key={g.game}
                       className="flex justify-between text-sm text-muted-foreground"
                     >
                       <span>
