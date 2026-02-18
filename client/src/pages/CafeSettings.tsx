@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
   DialogContent,
@@ -150,6 +151,15 @@ export default function CafeSettings() {
     onError: (err) => toast.error(err.message),
   });
 
+  const toggleActiveMut = trpc.cafes.update.useMutation({
+    onSuccess: () => {
+      toast.success("Cafe status updated");
+      utils.cafes.list.invalidate();
+      refetchCafes();
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
   const handleTestDirect = () => {
     if (!form.cafeId || !form.apiKey) {
       toast.error("Cafe ID and API Key are required to test");
@@ -186,6 +196,13 @@ export default function CafeSettings() {
       timezone: cafe.timezone || "",
     });
     setEditId(cafe.id);
+  };
+
+  const handleToggleActive = (cafeId: number, isActive: boolean) => {
+    toggleActiveMut.mutate({
+      id: cafeId,
+      isActive: isActive ? 1 : 0,
+    });
   };
 
   return (
@@ -231,12 +248,20 @@ export default function CafeSettings() {
                     <Building2 className="h-4 w-4 text-primary" />
                     {cafe.name}
                   </CardTitle>
-                  <Badge
-                    variant={cafe.isActive ? "default" : "secondary"}
-                    className="text-xs"
-                  >
-                    {cafe.isActive ? "Active" : "Inactive"}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge
+                      variant={cafe.isActive ? "default" : "secondary"}
+                      className="text-xs"
+                    >
+                      {cafe.isActive ? "Active" : "Inactive"}
+                    </Badge>
+                    <Switch
+                      checked={cafe.isActive}
+                      onCheckedChange={(checked) => handleToggleActive(cafe.id, checked)}
+                      disabled={toggleActiveMut.isPending}
+                      aria-label={cafe.isActive ? "Deactivate cafe" : "Activate cafe"}
+                    />
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="space-y-3">

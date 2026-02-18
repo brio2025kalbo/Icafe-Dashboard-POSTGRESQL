@@ -11,18 +11,29 @@ import { Building2 } from "lucide-react";
 export function CafeSelector() {
   const { cafes, selectedCafeId, setSelectedCafeId } = useCafe();
 
-  if (cafes.length === 0) {
+  // Filter to show only active cafes
+  const activeCafes = cafes.filter((cafe) => cafe.isActive);
+
+  if (activeCafes.length === 0) {
     return (
       <div className="flex items-center gap-2 px-2 py-1.5 text-sm text-muted-foreground">
         <Building2 className="h-4 w-4" />
-        <span>No cafes configured</span>
+        <span>No active cafes</span>
       </div>
     );
   }
 
+  // Ensure selectedCafeId is valid (either 'all' or an active cafe ID)
+  // If invalid, use empty string and let the context's useEffect fix it
+  const isValidSelection =
+    selectedCafeId === "all" ||
+    (selectedCafeId !== null && activeCafes.some((cafe) => cafe.id === selectedCafeId));
+  
+  const displayValue = isValidSelection ? selectedCafeId?.toString() || "" : "";
+
   return (
     <Select
-      value={selectedCafeId?.toString() || ""}
+      value={displayValue}
       onValueChange={(val) => {
         setSelectedCafeId(val === "all" ? "all" : Number(val));
       }}
@@ -34,10 +45,10 @@ export function CafeSelector() {
         </div>
       </SelectTrigger>
       <SelectContent>
-        {cafes.length > 1 && (
+        {activeCafes.length > 1 && (
           <SelectItem value="all">All Cafes (Combined)</SelectItem>
         )}
-        {cafes.map((cafe) => (
+        {activeCafes.map((cafe) => (
           <SelectItem key={cafe.id} value={cafe.id.toString()}>
             {cafe.name}
           </SelectItem>

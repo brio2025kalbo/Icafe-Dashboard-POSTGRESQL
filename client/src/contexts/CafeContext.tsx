@@ -33,8 +33,31 @@ export function CafeProvider({ children }: { children: ReactNode }) {
   const [selectedCafeId, setSelectedCafeId] = useState<number | "all" | null>(null);
 
   useEffect(() => {
-    if (cafes && cafes.length > 0 && selectedCafeId === null) {
-      setSelectedCafeId(cafes.length > 1 ? "all" : cafes[0].id);
+    if (cafes && cafes.length > 0) {
+      // Filter to only active cafes
+      const activeCafes = cafes.filter((c) => c.isActive);
+      
+      if (selectedCafeId === null) {
+        // Initial selection
+        if (activeCafes.length > 0) {
+          setSelectedCafeId(activeCafes.length > 1 ? "all" : activeCafes[0].id);
+        } else {
+          // No active cafes, keep selection as null
+          setSelectedCafeId(null);
+        }
+      } else if (selectedCafeId !== "all") {
+        // Check if currently selected cafe is still active
+        const isSelectedCafeActive = activeCafes.some((c) => c.id === selectedCafeId);
+        
+        if (!isSelectedCafeActive) {
+          // Currently selected cafe is inactive, switch to a valid selection
+          if (activeCafes.length > 0) {
+            setSelectedCafeId(activeCafes.length > 1 ? "all" : activeCafes[0].id);
+          } else {
+            setSelectedCafeId(null);
+          }
+        }
+      }
     }
   }, [cafes, selectedCafeId]);
 
