@@ -27,6 +27,10 @@ import type { FeedbackLog } from "@shared/feedback-types";
 import { DEFAULT_FEEDBACK_LIMIT } from "@shared/const";
 import { truncateText } from "@shared/string-utils";
 
+// Configuration for feedback toast notifications
+const MAX_TOAST_FEEDBACKS = 2; // Number of feedbacks to show details for in toast
+const MAX_TOAST_SUBJECT_LENGTH = 40; // Maximum characters to show for feedback subject in toast
+
 //function formatCurrency(value: number): string {
 //  return `₱${value.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 //}
@@ -70,10 +74,6 @@ export default function Home() {
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [, setLocation] = useLocation();
   const prevUnreadCountRef = useRef<number>(0);
-
-  // Configuration for feedback toast notifications
-  const MAX_TOAST_FEEDBACKS = 2; // Number of feedbacks to show details for in toast
-  const MAX_TOAST_SUBJECT_LENGTH = 40; // Maximum characters to show for feedback subject in toast
 
   // Fetch feedbacks and read statuses for toast notifications
   const { data: allCafeFeedbacks } = trpc.feedbacks.allCafes.useQuery(

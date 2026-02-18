@@ -2249,7 +2249,7 @@ export const appRouter = router({
       .query(async ({ ctx, input }) => {
         const cafe = await getCafeById(input.cafeDbId, ctx.user.id);
         if (!cafe) {
-          return { code: 404, message: "Cafe not found", data: [] };
+          throw new Error("Cafe not found");
         }
 
         const response = await icafe.getFeedbackLogs(

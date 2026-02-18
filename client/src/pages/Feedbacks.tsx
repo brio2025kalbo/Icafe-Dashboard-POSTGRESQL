@@ -36,7 +36,8 @@ export default function Feedbacks() {
       refetch();
     },
     onError: (error) => {
-      toast.error("Failed to update feedback status");
+      const errorMessage = error.message || "Unknown error occurred";
+      toast.error(`Failed to update feedback status: ${errorMessage}`);
       console.error("Error updating feedback:", error);
     },
   });
