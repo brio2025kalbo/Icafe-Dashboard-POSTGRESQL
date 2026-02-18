@@ -42,6 +42,8 @@ import {
   Users,
   UserPlus,
   X,
+  Info,
+  ExternalLink,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -364,6 +366,13 @@ export default function CafeSettings() {
                 placeholder="Your iCafeCloud API key"
                 className="mt-1"
               />
+              <div className="mt-2 flex items-start gap-2 text-xs text-muted-foreground bg-muted/50 p-2 rounded">
+                <Info className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="font-medium mb-1">How to get your API key:</p>
+                  <p>Visit <a href="https://manager.icafecloud.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline inline-flex items-center gap-1">iCafe Cloud Manager <ExternalLink className="h-3 w-3" /></a> → Settings → API Settings</p>
+                </div>
+              </div>
             </div>
             <div>
               <Label className="text-xs">Location (optional)</Label>
@@ -441,6 +450,12 @@ export default function CafeSettings() {
                 placeholder="Leave blank to keep current key"
                 className="mt-1"
               />
+              <div className="mt-2 flex items-start gap-2 text-xs text-muted-foreground bg-muted/50 p-2 rounded">
+                <Info className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p>Get your API key from <a href="https://manager.icafecloud.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline inline-flex items-center gap-1">iCafe Cloud Manager <ExternalLink className="h-3 w-3" /></a></p>
+                </div>
+              </div>
             </div>
             <div>
               <Label className="text-xs">Location</Label>

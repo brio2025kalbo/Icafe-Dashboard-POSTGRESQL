@@ -3,7 +3,7 @@ import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MessageSquare, Clock, User, Monitor, CheckCircle2, Circle, AlertTriangle } from "lucide-react";
+import { MessageSquare, Clock, User, Monitor, CheckCircle2, Circle, AlertTriangle, Settings as SettingsIcon, ExternalLink } from "lucide-react";
 import { useState, useMemo } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -11,12 +11,14 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import type { FeedbackLog, CafeFeedbacks } from "@shared/feedback-types";
 import { DEFAULT_FEEDBACK_LIMIT } from "@shared/const";
+import { useLocation } from "wouter";
 
 // UI Configuration
 const FEEDBACK_CARD_HEIGHT = "600px"; // Height of scrollable feedback area per cafe
 
 export default function Feedbacks() {
   const { cafes, selectedCafeId } = useCafe();
+  const [, setLocation] = useLocation();
   
   // Fetch all feedbacks from all cafes
   // Explicitly passes limit for clarity and future configurability
@@ -177,7 +179,7 @@ export default function Feedbacks() {
                 <ScrollArea style={{ height: FEEDBACK_CARD_HEIGHT }}>
                   <div className="p-4 space-y-4">
                     {cafeFeedback.error ? (
-                      <div className="text-center py-8 space-y-3">
+                      <div className="text-center py-8 space-y-4">
                         <div className="flex justify-center">
                           <AlertTriangle className="h-12 w-12 text-destructive" />
                         </div>
@@ -189,9 +191,24 @@ export default function Feedbacks() {
                         <p className="text-sm font-medium text-foreground">
                           {cafeFeedback.error}
                         </p>
-                        <p className="text-xs text-muted-foreground mt-2">
-                          Please check the API key for this cafe in settings.
-                        </p>
+                        <div className="space-y-2 text-xs text-muted-foreground">
+                          <p>The API key for this cafe is invalid or expired.</p>
+                          <p className="font-medium">To fix this:</p>
+                          <ol className="list-decimal list-inside space-y-1 text-left max-w-md mx-auto">
+                            <li>Go to <a href="https://manager.icafecloud.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline inline-flex items-center gap-1">iCafe Cloud Manager <ExternalLink className="h-3 w-3" /></a></li>
+                            <li>Navigate to Settings → API Settings</li>
+                            <li>Generate or copy your API key</li>
+                            <li>Update the API key in cafe settings below</li>
+                          </ol>
+                        </div>
+                        <Button
+                          onClick={() => setLocation("/settings")}
+                          className="mt-4"
+                          variant="default"
+                        >
+                          <SettingsIcon className="h-4 w-4 mr-2" />
+                          Go to Cafe Settings
+                        </Button>
                       </div>
                     ) : cafeFeedback.feedbacks.length === 0 ? (
                       <div className="text-center py-8 text-muted-foreground">
