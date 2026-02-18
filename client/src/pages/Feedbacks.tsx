@@ -3,7 +3,7 @@ import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MessageSquare, Clock, User, Monitor, CheckCircle2, Circle, AlertTriangle, Settings as SettingsIcon, ExternalLink } from "lucide-react";
+import { MessageSquare, Clock, User, Monitor, CheckCircle2, Circle, AlertTriangle, Settings as SettingsIcon, ExternalLink, CheckCheck } from "lucide-react";
 import { useState, useMemo } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -19,6 +19,7 @@ const FEEDBACK_CARD_HEIGHT = "600px"; // Height of scrollable feedback area per 
 export default function Feedbacks() {
   const { cafes, selectedCafeId } = useCafe();
   const [, setLocation] = useLocation();
+  const utils = trpc.useUtils();
   
   // Fetch all feedbacks from all cafes
   // Explicitly passes limit for clarity and future configurability
@@ -46,7 +47,9 @@ export default function Feedbacks() {
   // Mark as read/unread mutation
   const markAsReadMutation = trpc.feedbacks.markAsRead.useMutation({
     onSuccess: () => {
-      refetch();
+      // Invalidate queries to trigger refetch in all components
+      utils.feedbacks.allCafes.invalidate();
+      utils.feedbacks.getReadStatuses.invalidate();
     },
     onError: (error) => {
       const errorMessage = error.message || "Unknown error occurred";
@@ -55,11 +58,36 @@ export default function Feedbacks() {
     },
   });
 
+  // Mark all as read mutation
+  const markAllAsReadMutation = trpc.feedbacks.markAllAsRead.useMutation({
+    onSuccess: (data) => {
+      // Invalidate queries to trigger refetch in all components
+      utils.feedbacks.allCafes.invalidate();
+      utils.feedbacks.getReadStatuses.invalidate();
+      toast.success(`Marked ${data.count} feedback(s) as read`);
+    },
+    onError: (error) => {
+      const errorMessage = error.message || "Unknown error occurred";
+      toast.error(`Failed to mark all as read: ${errorMessage}`);
+      console.error("Error marking all as read:", error);
+    },
+  });
+
   const handleToggleRead = (cafeDbId: number, logId: number, currentIsRead: boolean) => {
     markAsReadMutation.mutate({
       cafeDbId,
       logId,
       isRead: !currentIsRead,
+    });
+  };
+
+  const handleMarkAllAsRead = (cafeDbId: number, logIds: number[]) => {
+    if (logIds.length === 0) return;
+    
+    markAllAsReadMutation.mutate({
+      cafeDbId,
+      logIds,
+      isRead: true,
     });
   };
 
@@ -171,6 +199,15 @@ export default function Feedbacks() {
         {filteredFeedbacks.map((cafeFeedback) => {
           const unreadCount = unreadCounts.get(cafeFeedback.cafeDbId) || 0;
           
+          // Get unread feedback IDs for this cafe
+          const unreadLogIds = cafeFeedback.feedbacks
+            .filter((feedback) => {
+              const key = `${cafeFeedback.cafeDbId}-${feedback.log_id}`;
+              const isRead = readStatusMap.get(key) || false;
+              return !isRead;
+            })
+            .map((feedback) => feedback.log_id);
+          
           // Debug logging for each cafe card
           console.log('[Feedbacks.tsx] Rendering cafe card:', {
             cafeName: cafeFeedback.cafeName,
@@ -193,9 +230,21 @@ export default function Feedbacks() {
                       {cafeFeedback.feedbacks.length} total
                     </Badge>
                     {unreadCount > 0 && (
-                      <Badge variant="destructive">
-                        {unreadCount} unread
-                      </Badge>
+                      <>
+                        <Badge variant="destructive">
+                          {unreadCount} unread
+                        </Badge>
+                        <Button
+                          size="sm"
+                          variant="default"
+                          onClick={() => handleMarkAllAsRead(cafeFeedback.cafeDbId, unreadLogIds)}
+                          disabled={markAllAsReadMutation.isPending}
+                          className="gap-1"
+                        >
+                          <CheckCheck className="h-4 w-4" />
+                          Mark All as Read
+                        </Button>
+                      </>
                     )}
                   </div>
                 </div>

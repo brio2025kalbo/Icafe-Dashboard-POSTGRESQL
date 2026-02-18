@@ -2446,6 +2446,25 @@ export const appRouter = router({
         return { success: true };
       }),
 
+    markAllAsRead: protectedProcedure
+      .input(
+        z.object({
+          cafeDbId: z.number(),
+          logIds: z.array(z.number()),
+          isRead: z.boolean(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const { setMultipleFeedbackReadStatus } = await import("./db");
+        await setMultipleFeedbackReadStatus(
+          ctx.user.id,
+          input.cafeDbId,
+          input.logIds,
+          input.isRead
+        );
+        return { success: true, count: input.logIds.length };
+      }),
+
     getReadStatuses: protectedProcedure.query(async ({ ctx }) => {
       const { getUserFeedbackReadStatuses } = await import("./db");
       return getUserFeedbackReadStatuses(ctx.user.id);

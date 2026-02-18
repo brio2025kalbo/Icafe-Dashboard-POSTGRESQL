@@ -929,3 +929,60 @@ export async function setFeedbackReadStatus(
     });
   }
 }
+
+export async function setMultipleFeedbackReadStatus(
+  userId: number,
+  cafeId: number,
+  logIds: number[],
+  isRead: boolean
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const { feedbackReadStatus } = await import("../drizzle/schema");
+
+  // Get existing records
+  const existing = await db
+    .select()
+    .from(feedbackReadStatus)
+    .where(
+      and(
+        eq(feedbackReadStatus.userId, userId),
+        eq(feedbackReadStatus.cafeId, cafeId),
+        inArray(feedbackReadStatus.logId, logIds)
+      )
+    );
+
+  const existingLogIds = new Set(existing.map((r) => r.logId));
+  const now = new Date();
+
+  // Update existing records
+  if (existingLogIds.size > 0) {
+    await db
+      .update(feedbackReadStatus)
+      .set({
+        isRead,
+        updatedAt: now,
+      })
+      .where(
+        and(
+          eq(feedbackReadStatus.userId, userId),
+          eq(feedbackReadStatus.cafeId, cafeId),
+          inArray(feedbackReadStatus.logId, Array.from(existingLogIds))
+        )
+      );
+  }
+
+  // Insert new records
+  const newLogIds = logIds.filter((id) => !existingLogIds.has(id));
+  if (newLogIds.length > 0) {
+    await db.insert(feedbackReadStatus).values(
+      newLogIds.map((logId) => ({
+        userId,
+        cafeId,
+        logId,
+        isRead,
+      }))
+    );
+  }
+}
