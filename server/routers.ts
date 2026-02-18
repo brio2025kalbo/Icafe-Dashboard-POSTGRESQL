@@ -812,7 +812,7 @@ export const appRouter = router({
                 console.log(`[${cafe.name}] Refund Logs found: ${refundLogs.length}`);
                 if (refundLogs.length > 0) {
                   refundLogs.forEach((log, idx) => {
-                    console.log(`  [${idx}] Staff: ${log.staff}, Amount: ${log.amount}, Reason: "${log.reason}"`);
+                    console.log(`  [${idx}] Member: ${log.member}, Staff: ${log.staff}, Amount: ${log.amount}, Reason: "${log.reason}"`);
                   });
                 }
 
@@ -1072,13 +1072,18 @@ export const appRouter = router({
                     const matchingLog = refundLogs[matchingLogIndex];
                     usedLogIndices.add(matchingLogIndex);
                     
-                    console.log(`  ✓ Matched: ${item.staff} ${item.amount} with reason: "${matchingLog.reason}"`);
+                    console.log(`  ✓ Matched: ${item.staff} ${item.amount} with member: "${matchingLog.member}", reason: "${matchingLog.reason}"`);
                     
                     if (matchingLog.reason) {
+                      // Format details to include member and reason
+                      const memberInfo = matchingLog.member ? `Member: ${matchingLog.member} - ` : '';
+                      const detailsWithMember = `${memberInfo}${matchingLog.reason}`;
+                      
                       return {
                         ...item,
+                        member: matchingLog.member,
                         reason: matchingLog.reason,
-                        details: matchingLog.reason, // Use reason as details
+                        details: detailsWithMember, // Include member in details
                       };
                     }
                   } else {
