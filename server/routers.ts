@@ -1012,6 +1012,26 @@ export const appRouter = router({
 
                 const shiftOrder = shiftResults.map(s => s.staffName);
 
+                // Enrich refundItems with reasons from refundLogs
+                combined.refundItems = combined.refundItems.map((item: any) => {
+                  // Try to find a matching refund log entry
+                  // Match by staff name and amount (since we don't have other unique identifiers)
+                  const matchingLog = refundLogs.find((log: any) => 
+                    log.staff === item.staff && 
+                    Math.abs(log.amount - item.amount) < 0.01 // Allow small floating point differences
+                  );
+                  
+                  if (matchingLog && matchingLog.reason) {
+                    return {
+                      ...item,
+                      reason: matchingLog.reason,
+                      details: matchingLog.reason || item.details, // Use reason as details if available
+                    };
+                  }
+                  
+                  return item;
+                });
+
                 const fullDayReport = await icafe.getReportData(
                   { cafeId: cafe.cafeId, apiKey: cafe.apiKey },
                   {
