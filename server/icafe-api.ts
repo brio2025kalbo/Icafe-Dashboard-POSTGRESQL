@@ -38,8 +38,10 @@ async function icafeRequest<T = unknown>(
   // Ensure API key is trimmed to avoid whitespace issues
   const apiKey = options.apiKey.trim();
   
-  // Debug: Log the length and first/last few characters of the API key (for debugging without exposing full key)
-  console.log(`[iCafe API] API Key length: ${apiKey.length}, starts with: ${apiKey.substring(0, 4)}...`);
+  // Debug logging (only in development)
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`[iCafe API] API Key length: ${apiKey.length}, starts with: ${apiKey.substring(0, 4)}...`);
+  }
 
   try {
     const response = await axios({
