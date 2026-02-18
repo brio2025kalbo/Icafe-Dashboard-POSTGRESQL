@@ -1053,11 +1053,20 @@ export const appRouter = router({
                   // Try to find a matching refund log entry that hasn't been used yet
                   // Note: refundLogs amounts are negative, item amounts are positive
                   // Using log.amount + item.amount to compare: -100 + 100 = 0 for a match
-                  const matchingLogIndex = refundLogs.findIndex((log: any, index: number) => 
-                    !usedLogIndices.has(index) &&
-                    log.staff === item.staff && 
-                    Math.abs(log.amount + item.amount) <= AMOUNT_MATCH_TOLERANCE
-                  );
+                  const matchingLogIndex = refundLogs.findIndex((log: any, index: number) => {
+                    const staffMatch = (log.staff || "").trim().toLowerCase() === (item.staff || "").trim().toLowerCase();
+                    const amountMatch = Math.abs(log.amount + item.amount) <= AMOUNT_MATCH_TOLERANCE;
+                    const notUsed = !usedLogIndices.has(index);
+                    
+                    if (!notUsed) return false;
+                    
+                    // Debug individual comparison
+                    if (amountMatch) {
+                      console.log(`    Comparing: log.staff="${log.staff}" vs item.staff="${item.staff}", staffMatch=${staffMatch}, amountMatch=${amountMatch}`);
+                    }
+                    
+                    return staffMatch && amountMatch;
+                  });
                   
                   if (matchingLogIndex !== -1) {
                     const matchingLog = refundLogs[matchingLogIndex];
