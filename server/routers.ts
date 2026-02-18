@@ -1017,20 +1017,29 @@ export const appRouter = router({
                 const shiftOrder = shiftResults.map(s => s.staffName);
 
                 // Enrich refundItems with reasons from refundLogs
+                // Track matched logs to avoid duplicate matching
+                const usedLogIndices = new Set<number>();
+                
                 combined.refundItems = combined.refundItems.map((item: any) => {
-                  // Try to find a matching refund log entry
+                  // Try to find a matching refund log entry that hasn't been used yet
                   // Match by staff name and amount (since we don't have other unique identifiers)
-                  const matchingLog = refundLogs.find((log: any) => 
+                  const matchingLogIndex = refundLogs.findIndex((log: any, index: number) => 
+                    !usedLogIndices.has(index) &&
                     log.staff === item.staff && 
                     Math.abs(log.amount - item.amount) < 0.01 // Allow small floating point differences
                   );
                   
-                  if (matchingLog && matchingLog.reason) {
-                    return {
-                      ...item,
-                      reason: matchingLog.reason,
-                      details: matchingLog.reason || item.details, // Use reason as details if available
-                    };
+                  if (matchingLogIndex !== -1) {
+                    const matchingLog = refundLogs[matchingLogIndex];
+                    usedLogIndices.add(matchingLogIndex);
+                    
+                    if (matchingLog.reason) {
+                      return {
+                        ...item,
+                        reason: matchingLog.reason,
+                        details: matchingLog.reason, // Use reason as details
+                      };
+                    }
                   }
                   
                   return item;
