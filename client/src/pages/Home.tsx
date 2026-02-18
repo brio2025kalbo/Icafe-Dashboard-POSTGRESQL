@@ -25,6 +25,7 @@ import { toast } from "sonner";
 import { useLocation } from "wouter";
 import type { FeedbackLog } from "@shared/feedback-types";
 import { DEFAULT_FEEDBACK_LIMIT } from "@shared/const";
+import { truncateText } from "@shared/string-utils";
 
 //function formatCurrency(value: number): string {
 //  return `₱${value.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -132,17 +133,11 @@ export default function Home() {
             <p className="font-semibold">
               {newCount} New Feedback{newCount > 1 ? "s" : ""}
             </p>
-            {unreadFeedbacks.slice(0, MAX_TOAST_FEEDBACKS).map((fb, i) => {
-              const truncatedSubject = fb.subject.length > MAX_TOAST_SUBJECT_LENGTH
-                ? `${fb.subject.substring(0, MAX_TOAST_SUBJECT_LENGTH)}...`
-                : fb.subject;
-              
-              return (
-                <p key={i} className="text-sm text-muted-foreground">
-                  <span className="font-medium">{fb.cafeName}:</span> {truncatedSubject}
-                </p>
-              );
-            })}
+            {unreadFeedbacks.slice(0, MAX_TOAST_FEEDBACKS).map((fb, i) => (
+              <p key={i} className="text-sm text-muted-foreground">
+                <span className="font-medium">{fb.cafeName}:</span> {truncateText(fb.subject, MAX_TOAST_SUBJECT_LENGTH)}
+              </p>
+            ))}
             {newCount > MAX_TOAST_FEEDBACKS && (
               <p className="text-sm text-muted-foreground">
                 and {newCount - MAX_TOAST_FEEDBACKS} more...

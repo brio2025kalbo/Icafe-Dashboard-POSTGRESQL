@@ -4,6 +4,7 @@ import { systemRouter } from "./_core/systemRouter";
 //import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { adminProcedure, protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { z } from "zod";
+import type { FeedbackLog } from "@shared/feedback-types";
 import {
   getUserCafes,
   getCafeById,
@@ -2306,7 +2307,7 @@ export const appRouter = router({
             cafeDbId: number;
             cafeName: string;
             cafeId: string;
-            feedbacks: any[];
+            feedbacks: FeedbackLog[];
           }> => result.status === 'fulfilled')
           .map(result => result.value);
       }),
