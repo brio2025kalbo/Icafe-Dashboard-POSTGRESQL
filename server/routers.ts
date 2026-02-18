@@ -671,8 +671,6 @@ export const appRouter = router({
             const refundTopup = reportData?.refund?.topup || {};
             const refundTopupTotal = refundTopup?.total;
             
-            console.log(`[DEBUG] RefundTopup structure for ${staffName}:`, JSON.stringify(refundTopup, null, 2));
-            
             let refundTotal = Number(refundTopupTotal?.amount || 0);
             let refundCount = Number(refundTopupTotal?.number || 0);
             
@@ -685,8 +683,6 @@ export const appRouter = router({
             }
             
             const refundProduct = reportData?.refund?.product;
-            
-            console.log(`[DEBUG] RefundProduct structure for ${staffName}:`, JSON.stringify(refundProduct, null, 2));
             
             if (refundProduct && typeof refundProduct === "object") {
               const productAmount = Number(refundProduct.amount || refundProduct.total || 0);
@@ -764,10 +760,9 @@ export const appRouter = router({
                       date_end: businessEnd,
                       page,
                       limit: 100,
+                      event: 'TOPUP',  // Filter for TOPUP events only (includes refunds)
                     }
                   );
-
-                  console.log("Billing Page:", page, billing?.data);
 
                   const logs = billing?.data?.log_list || [];
                   const pagingInfo = billing?.data?.paging_info;
@@ -776,9 +771,9 @@ export const appRouter = router({
 
                   allLogs.push(...logs);
                   
-                  console.log(`[${cafe.name}] Fetched page ${page}: ${logs.length} logs (Total so far: ${allLogs.length})`);
-                  if (pagingInfo) {
-                    console.log(`[${cafe.name}] Paging info: total_records=${pagingInfo.total_records}, pages=${pagingInfo.pages}, current_page=${pagingInfo.page}`);
+                  console.log(`[${cafe.name}] Fetched page ${page}: ${logs.length} TOPUP logs (Total so far: ${allLogs.length})`);
+                  if (pagingInfo && page === 1) {
+                    console.log(`[${cafe.name}] Paging info: total_records=${pagingInfo.total_records}, pages=${pagingInfo.pages}`);
                   }
 
                   // Check if we've reached the last page using paging_info
@@ -793,41 +788,13 @@ export const appRouter = router({
                   page++;
                 }
 
-                console.log("ALL BILLING LOGS:", allLogs);
-                console.log(`[${cafe.name}] Total billing logs fetched:`, allLogs.length);
+                console.log(`[${cafe.name}] Total TOPUP logs fetched: ${allLogs.length}`);
 
-                // Log a sample of billing logs to understand the structure
-                if (allLogs.length > 0) {
-                  console.log(`[${cafe.name}] Sample billing log:`, JSON.stringify(allLogs[0], null, 2));
-                }
-
-                // Log all unique event types to understand what's in the billing logs
-                const eventTypes = new Set(allLogs.map((log: any) => log.log_event));
-                console.log(`[${cafe.name}] Unique event types in billing logs:`, Array.from(eventTypes).join(", "));
-                
-                // Log all transactions with "topup" or "refund" in any field (regardless of amount)
-                const topupOrRefundLogs = allLogs.filter((log: any) => {
-                  const logStr = JSON.stringify(log).toLowerCase();
-                  return logStr.includes("topup") || logStr.includes("refund");
-                });
-                console.log(`[${cafe.name}] Logs containing "topup" or "refund":`, topupOrRefundLogs.length);
-                topupOrRefundLogs.forEach((log: any) => {
-                  console.log(`  Event="${log.log_event}", Money=${log.log_money}, Details="${log.log_details}"`);
-                });
-
+                // Filter for refunds (negative TOPUP transactions)
                 refundLogs = allLogs
                   .filter((log: any) => {
-                    const logEvent = (log.log_event || "").toLowerCase();
                     const money = Number(log.log_money || 0);
-                    // Filter for refund events: only negative transactions that are either topup-related or explicitly refunds
-                    const matches = money < 0 && (logEvent.includes("topup") || logEvent.includes("refund"));
-                    
-                    // Debug: log ALL negative transactions to see what we're missing
-                    if (money < 0) {
-                      console.log(`  Negative transaction: Event="${log.log_event}", Money=${money}, Staff="${log.log_staff_name}", Details="${log.log_details}", Matches=${matches}`);
-                    }
-                    
-                    return matches;
+                    return money < 0;  // Since we already filtered for TOPUP, just check for negative
                   })
                   .map((log: any) => ({
                     member: log.log_member_account,
@@ -838,10 +805,12 @@ export const appRouter = router({
                     event: log.log_event,
                   }));
 
-                console.log(`[${cafe.name}] Refund Logs found:`, refundLogs.length);
-                refundLogs.forEach((log, idx) => {
-                  console.log(`  [${idx}] Staff: ${log.staff}, Amount: ${log.amount}, Reason: "${log.reason}", Event: ${log.event}`);
-                });
+                console.log(`[${cafe.name}] Refund Logs found: ${refundLogs.length}`);
+                if (refundLogs.length > 0) {
+                  refundLogs.forEach((log, idx) => {
+                    console.log(`  [${idx}] Staff: ${log.staff}, Amount: ${log.amount}, Reason: "${log.reason}"`);
+                  });
+                }
 
               } catch (err) {
                 console.error("Refund log fetch failed:", err);
@@ -1092,11 +1061,6 @@ export const appRouter = router({
                     
                     if (!notUsed) return false;
                     
-                    // Debug individual comparison
-                    if (amountMatch) {
-                      console.log(`    Comparing: log.staff="${log.staff}" vs item.staff="${item.staff}", staffMatch=${staffMatch}, amountMatch=${amountMatch}`);
-                    }
-                    
                     return staffMatch && amountMatch;
                   });
                   
@@ -1104,7 +1068,7 @@ export const appRouter = router({
                     const matchingLog = refundLogs[matchingLogIndex];
                     usedLogIndices.add(matchingLogIndex);
                     
-                    console.log(`  ✓ Matched: ${item.staff} ${item.amount} with log[${matchingLogIndex}] reason: "${matchingLog.reason}"`);
+                    console.log(`  ✓ Matched: ${item.staff} ${item.amount} with reason: "${matchingLog.reason}"`);
                     
                     if (matchingLog.reason) {
                       return {
@@ -1120,9 +1084,9 @@ export const appRouter = router({
                   return item;
                 });
 
-                console.log(`[${cafe.name}] Refund Items after enrichment:`, combined.refundItems.length);
+                console.log(`[${cafe.name}] Refund Items after enrichment: ${combined.refundItems.length}`);
                 combined.refundItems.forEach((item, idx) => {
-                  console.log(`  [${idx}] Staff: ${item.staff}, Amount: ${item.amount}, Details: "${item.details}"`);
+                  console.log(`  [${idx}] ${item.staff}: "${item.details}"`);
                 });
 
                 const fullDayReport = await icafe.getReportData(
