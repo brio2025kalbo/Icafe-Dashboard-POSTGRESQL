@@ -2,9 +2,11 @@ import axios, { AxiosError } from "axios";
 import { Agent as HttpAgent } from "http";
 import { Agent as HttpsAgent } from "https";
 
-// iCafe Cloud uses regional servers. as1 = Asia Server 1
-// Change this if your cafes are in different regions
-const ICAFE_BASE_URL = "https://as1.icafecloud.com";
+// iCafe Cloud uses regional servers. Examples:
+// - as1.icafecloud.com = Asia Server 1
+// - api.icafecloud.com = Global/default
+// Configure via ICAFE_BASE_URL environment variable if needed
+const ICAFE_BASE_URL = process.env.ICAFE_BASE_URL || "https://as1.icafecloud.com";
 
 // Force IPv4 for iCafeCloud API requests to avoid IPv6 whitelist issues
 const httpsAgent = new HttpsAgent({

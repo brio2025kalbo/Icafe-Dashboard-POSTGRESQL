@@ -192,8 +192,14 @@ export default function Feedbacks() {
                           {cafeFeedback.error}
                         </p>
                         <div className="space-y-2 text-xs text-muted-foreground">
-                          <p>The API key for this cafe is invalid or expired.</p>
-                          <p className="font-medium">To fix this:</p>
+                          <p>Unable to retrieve feedbacks from iCafe Cloud API.</p>
+                          <p className="font-medium">Common causes:</p>
+                          <ul className="list-disc list-inside space-y-1 text-left max-w-md mx-auto">
+                            <li>Invalid or expired API key</li>
+                            <li>API key doesn't have required permissions</li>
+                            <li>Network or connectivity issues</li>
+                          </ul>
+                          <p className="font-medium mt-3">To resolve:</p>
                           <ol className="list-decimal list-inside space-y-1 text-left max-w-md mx-auto">
                             <li>Go to <a href="https://manager.icafecloud.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline inline-flex items-center gap-1">iCafe Cloud Manager <ExternalLink className="h-3 w-3" /></a></li>
                             <li>Navigate to Settings → API Settings</li>
