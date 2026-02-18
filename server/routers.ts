@@ -2269,6 +2269,9 @@ export const appRouter = router({
     allCafes: protectedProcedure
       .input(
         z.object({
+          // Limit per cafe to prevent performance issues with large feedback volumes
+          // Max of 500 balances memory usage with comprehensive data coverage
+          // Most cafes generate <100 feedbacks, so default of 100 is usually sufficient
           limit: z.number().min(1).max(500).optional().default(100),
         }).optional()
       )

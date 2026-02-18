@@ -15,6 +15,7 @@ export default function Feedbacks() {
   const { cafes, selectedCafeId } = useCafe();
   
   // Fetch all feedbacks from all cafes
+  // Uses default limit of 100 feedbacks per cafe, which is sufficient for typical dashboard usage
   const { data: allCafeFeedbacks, isLoading, refetch } = trpc.feedbacks.allCafes.useQuery(
     undefined,
     {
