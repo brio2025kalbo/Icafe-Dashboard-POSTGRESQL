@@ -274,21 +274,12 @@ async function sendScheduledReport(setting: any) {
 function getBusinessDateToSend(mode: string): string {
   const now = new Date();
   
-  if (mode === "business_day_end") {
-    // Business day ends at 6 AM - send yesterday's report
-    const yesterday = new Date(now);
-    yesterday.setDate(yesterday.getDate() - 1);
-    return `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, "0")}-${String(yesterday.getDate()).padStart(2, "0")}`;
-  } else {
-    // For daily_time and last_shift, send today's report (or yesterday if before 6 AM)
-    if (now.getHours() < 6) {
-      const yesterday = new Date(now);
-      yesterday.setDate(yesterday.getDate() - 1);
-      return `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, "0")}-${String(yesterday.getDate()).padStart(2, "0")}`;
-    } else {
-      return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
-    }
-  }
+  // Always send the previous business day's report
+  // Business day runs from 6 AM to 6 AM next day
+  // So we always report on yesterday's calendar date
+  const yesterday = new Date(now);
+  yesterday.setDate(yesterday.getDate() - 1);
+  return `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, "0")}-${String(yesterday.getDate()).padStart(2, "0")}`;
 }
 
 /**
