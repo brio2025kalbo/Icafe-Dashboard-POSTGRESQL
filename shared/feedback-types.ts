@@ -30,4 +30,5 @@ export interface CafeFeedbacks {
   cafeName: string;
   cafeId: string;
   feedbacks: FeedbackLog[];
+  error?: string; // Optional error message if API call failed
 }

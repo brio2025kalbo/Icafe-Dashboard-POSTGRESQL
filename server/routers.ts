@@ -2278,24 +2278,48 @@ export const appRouter = router({
         const cafes = await getUserCafes(ctx.user.id);
         
         const feedbackPromises = cafes.map(async (cafe) => {
-          const response = await icafe.getFeedbackLogs(
-            {
-              cafeId: cafe.cafeId,
-              apiKey: cafe.apiKey,
-            },
-            {
-              read: FEEDBACK_READ_STATUS_ALL, // Get all feedbacks
-              page: 1,
-              limit: input.limit,
-            }
-          );
+          try {
+            const response = await icafe.getFeedbackLogs(
+              {
+                cafeId: cafe.cafeId,
+                apiKey: cafe.apiKey,
+              },
+              {
+                read: FEEDBACK_READ_STATUS_ALL, // Get all feedbacks
+                page: 1,
+                limit: input.limit,
+              }
+            );
 
-          return {
-            cafeDbId: cafe.id,
-            cafeName: cafe.name,
-            cafeId: cafe.cafeId,
-            feedbacks: response.data || [],
-          };
+            // Check if the response indicates an error
+            if (response.code && response.code >= 400) {
+              console.error(`[Feedback] API error for cafe ${cafe.name} (${cafe.cafeId}): ${response.code} - ${response.message}`);
+              // Return empty feedbacks for this cafe with error logged
+              return {
+                cafeDbId: cafe.id,
+                cafeName: cafe.name,
+                cafeId: cafe.cafeId,
+                feedbacks: [],
+                error: response.message,
+              };
+            }
+
+            return {
+              cafeDbId: cafe.id,
+              cafeName: cafe.name,
+              cafeId: cafe.cafeId,
+              feedbacks: response.data || [],
+            };
+          } catch (error) {
+            console.error(`[Feedback] Exception for cafe ${cafe.name} (${cafe.cafeId}):`, error);
+            return {
+              cafeDbId: cafe.id,
+              cafeName: cafe.name,
+              cafeId: cafe.cafeId,
+              feedbacks: [],
+              error: error instanceof Error ? error.message : 'Unknown error',
+            };
+          }
         });
 
         // Use Promise.allSettled to handle partial failures gracefully
@@ -2308,6 +2332,7 @@ export const appRouter = router({
             cafeName: string;
             cafeId: string;
             feedbacks: FeedbackLog[];
+            error?: string;
           }> => result.status === 'fulfilled')
           .map(result => result.value);
       }),

@@ -3,7 +3,7 @@ import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MessageSquare, Clock, User, Monitor, CheckCircle2, Circle } from "lucide-react";
+import { MessageSquare, Clock, User, Monitor, CheckCircle2, Circle, AlertTriangle } from "lucide-react";
 import { useState, useMemo } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -176,7 +176,24 @@ export default function Feedbacks() {
               <CardContent className="p-0">
                 <ScrollArea style={{ height: FEEDBACK_CARD_HEIGHT }}>
                   <div className="p-4 space-y-4">
-                    {cafeFeedback.feedbacks.length === 0 ? (
+                    {cafeFeedback.error ? (
+                      <div className="text-center py-8 space-y-3">
+                        <div className="flex justify-center">
+                          <AlertTriangle className="h-12 w-12 text-destructive" />
+                        </div>
+                        <div>
+                          <Badge variant="destructive" className="text-base px-4 py-2">
+                            Authentication Error
+                          </Badge>
+                        </div>
+                        <p className="text-sm font-medium text-foreground">
+                          {cafeFeedback.error}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-2">
+                          Please check the API key for this cafe in settings.
+                        </p>
+                      </div>
+                    ) : cafeFeedback.feedbacks.length === 0 ? (
                       <div className="text-center py-8 text-muted-foreground">
                         No feedbacks for this cafe
                       </div>

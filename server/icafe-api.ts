@@ -45,6 +45,19 @@ async function icafeRequest<T = unknown>(
       httpsAgent, // Use IPv4-only agent
     });
     console.log(`[iCafe API] Response ${response.status}:`, JSON.stringify(response.data).substring(0, 2000));
+    
+    // iCafeCloud API returns HTTP 200 with error codes in the JSON body
+    // Check if the response contains an error code (400+)
+    const responseData = response.data;
+    if (responseData && typeof responseData === 'object' && 'code' in responseData) {
+      const errorCode = responseData.code as number;
+      if (errorCode >= 400) {
+        const errorMessage = (responseData as any).message || 'Unknown error';
+        console.error(`[iCafe API] Error code ${errorCode} in response body: ${errorMessage}`);
+        return { code: errorCode, message: errorMessage };
+      }
+    }
+    
     return response.data;
   } catch (error) {
     if (error instanceof AxiosError) {
