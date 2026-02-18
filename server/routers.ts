@@ -781,13 +781,12 @@ export const appRouter = router({
                   .filter((log: any) => {
                     const logEvent = (log.log_event || "").toLowerCase();
                     const money = Number(log.log_money || 0);
-                    // Filter for refund events: negative money AND/OR event explicitly mentions refund
-                    // This captures both explicit refund events and negative transactions that may be refunds
-                    return (money < 0 && logEvent.includes("topup")) || logEvent.includes("refund");
+                    // Filter for refund events: only negative transactions that are either topup-related or explicitly refunds
+                    return money < 0 && (logEvent.includes("topup") || logEvent.includes("refund"));
                   })
                   .map((log: any) => ({
                     member: log.log_member_account,
-                    amount: Math.abs(Number(log.log_money || 0)), // Use absolute value for matching
+                    amount: Number(log.log_money || 0), // Preserve original negative value
                     reason: log.log_details || "",
                     staff: log.log_staff_name,
                     time: log.log_date,
@@ -1029,10 +1028,11 @@ export const appRouter = router({
                 
                 combined.refundItems = combined.refundItems.map((item: any) => {
                   // Try to find a matching refund log entry that hasn't been used yet
+                  // Note: refundLogs amounts are negative, item amounts are positive, so we compare absolute values
                   const matchingLogIndex = refundLogs.findIndex((log: any, index: number) => 
                     !usedLogIndices.has(index) &&
                     log.staff === item.staff && 
-                    Math.abs(log.amount - item.amount) <= AMOUNT_MATCH_TOLERANCE
+                    Math.abs(Math.abs(log.amount) - item.amount) <= AMOUNT_MATCH_TOLERANCE
                   );
                   
                   if (matchingLogIndex !== -1) {
