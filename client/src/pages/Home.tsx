@@ -17,9 +17,19 @@ import {
   RefreshCw,
   ArrowDownRight,
   Gamepad2,
+  MessageSquare,
 } from "lucide-react";
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "sonner";
+import { useLocation } from "wouter";
+import type { FeedbackLog } from "@shared/feedback-types";
+import { DEFAULT_FEEDBACK_LIMIT } from "@shared/const";
+import { truncateText } from "@shared/string-utils";
+
+// Configuration for feedback toast notifications
+const MAX_TOAST_FEEDBACKS = 2; // Number of feedbacks to show details for in toast
+const MAX_TOAST_SUBJECT_LENGTH = 40; // Maximum characters to show for feedback subject in toast
 
 //function formatCurrency(value: number): string {
 //  return `₱${value.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -62,6 +72,91 @@ export default function Home() {
  
   const { cafes, selectedCafeId, isLoading: cafesLoading } = useCafe();
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+  const [, setLocation] = useLocation();
+  const prevUnreadCountRef = useRef<number>(0);
+
+  // Fetch feedbacks and read statuses for toast notifications
+  const { data: allCafeFeedbacks } = trpc.feedbacks.allCafes.useQuery(
+    { limit: DEFAULT_FEEDBACK_LIMIT },
+    {
+      refetchInterval: 60000, // Check every minute
+      enabled: cafes.length > 0,
+    }
+  );
+
+  const { data: readStatuses = [] } = trpc.feedbacks.getReadStatuses.useQuery(
+    undefined,
+    {
+      refetchInterval: 60000,
+      enabled: cafes.length > 0,
+    }
+  );
+
+  // Calculate unread feedback count and show toast for new unread feedbacks
+  useEffect(() => {
+    if (!allCafeFeedbacks || !readStatuses) return;
+
+    const readStatusMap = new Map<string, boolean>();
+    readStatuses.forEach((status) => {
+      const key = `${status.cafeId}-${status.logId}`;
+      readStatusMap.set(key, status.isRead);
+    });
+
+    let unreadCount = 0;
+    const unreadFeedbacks: Array<{ cafeName: string; subject: string; member: string }> = [];
+
+    allCafeFeedbacks.forEach((cafeFeedback) => {
+      cafeFeedback.feedbacks.forEach((feedback: FeedbackLog) => {
+        const key = `${cafeFeedback.cafeDbId}-${feedback.log_id}`;
+        const isRead = readStatusMap.get(key) || false;
+        if (!isRead) {
+          unreadCount++;
+          if (unreadFeedbacks.length < MAX_TOAST_FEEDBACKS) {
+            unreadFeedbacks.push({
+              cafeName: cafeFeedback.cafeName,
+              subject: feedback.subject,
+              member: feedback.log_member_account,
+            });
+          }
+        }
+      });
+    });
+
+    // Show toast only if there are new unread feedbacks
+    if (unreadCount > prevUnreadCountRef.current && prevUnreadCountRef.current >= 0) {
+      const newCount = unreadCount - prevUnreadCountRef.current;
+      
+      toast(
+        <div className="flex items-start gap-3 w-full">
+          <MessageSquare className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+          <div className="flex-1 space-y-1">
+            <p className="font-semibold">
+              {newCount} New Feedback{newCount > 1 ? "s" : ""}
+            </p>
+            {unreadFeedbacks.slice(0, MAX_TOAST_FEEDBACKS).map((fb, i) => (
+              <p key={i} className="text-sm text-muted-foreground">
+                <span className="font-medium">{fb.cafeName}:</span> {truncateText(fb.subject, MAX_TOAST_SUBJECT_LENGTH)}
+              </p>
+            ))}
+            {newCount > MAX_TOAST_FEEDBACKS && (
+              <p className="text-sm text-muted-foreground">
+                and {newCount - MAX_TOAST_FEEDBACKS} more...
+              </p>
+            )}
+          </div>
+        </div>,
+        {
+          duration: 8000,
+          action: {
+            label: "View",
+            onClick: () => setLocation("/feedbacks"),
+          },
+        }
+      );
+    }
+
+    prevUnreadCountRef.current = unreadCount;
+  }, [allCafeFeedbacks, readStatuses, setLocation]);
 
   //Expense Breakdown
   const [expandedExpenses, setExpandedExpenses] = useState<Record<number, boolean>>({});

@@ -401,7 +401,15 @@ export async function addCafe(
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  const encrypted = encrypt(data.apiKey);
+  // Validate and trim API key to avoid whitespace issues
+  if (!data.apiKey) {
+    throw new Error("API key is required");
+  }
+  const trimmedApiKey = data.apiKey.trim();
+  if (!trimmedApiKey) {
+    throw new Error("API key cannot be empty");
+  }
+  const encrypted = encrypt(trimmedApiKey);
 
   // Insert the cafe (userId kept for backward compatibility but will be deprecated)
   const result = await db.insert(cafes).values({
@@ -456,7 +464,13 @@ export async function updateCafe(
   const updateSet: Record<string, unknown> = {};
   if (data.name !== undefined) updateSet.name = data.name;
   if (data.cafeId !== undefined) updateSet.cafeId = data.cafeId;
-  if (data.apiKey !== undefined) updateSet.apiKeyEncrypted = encrypt(data.apiKey);
+  if (data.apiKey) {
+    const trimmedApiKey = data.apiKey.trim();
+    if (!trimmedApiKey) {
+      throw new Error("API key cannot be empty");
+    }
+    updateSet.apiKeyEncrypted = encrypt(trimmedApiKey);
+  }
   if (data.location !== undefined) updateSet.location = data.location;
   if (data.timezone !== undefined) updateSet.timezone = data.timezone;
   if (data.isActive !== undefined) updateSet.isActive = data.isActive;
@@ -839,4 +853,136 @@ export async function getAllEnabledQbAutoSendSettings() {
     .where(eq(qbAutoSendSettings.enabled, 1));
 
   return result;
+}
+
+/* ---------- FEEDBACK READ STATUS ---------- */
+
+export async function getFeedbackReadStatus(userId: number, cafeId: number, logId: number) {
+  const db = await getDb();
+  if (!db) return null;
+
+  const { feedbackReadStatus } = await import("../drizzle/schema");
+  const result = await db
+    .select()
+    .from(feedbackReadStatus)
+    .where(
+      and(
+        eq(feedbackReadStatus.userId, userId),
+        eq(feedbackReadStatus.cafeId, cafeId),
+        eq(feedbackReadStatus.logId, logId)
+      )
+    )
+    .limit(1);
+
+  return result[0] || null;
+}
+
+export async function getUserFeedbackReadStatuses(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+
+  const { feedbackReadStatus } = await import("../drizzle/schema");
+  const result = await db
+    .select()
+    .from(feedbackReadStatus)
+    .where(eq(feedbackReadStatus.userId, userId));
+
+  return result;
+}
+
+export async function setFeedbackReadStatus(
+  userId: number,
+  cafeId: number,
+  logId: number,
+  isRead: boolean
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const { feedbackReadStatus } = await import("../drizzle/schema");
+
+  // Check if exists
+  const existing = await getFeedbackReadStatus(userId, cafeId, logId);
+
+  if (existing) {
+    // Update
+    await db
+      .update(feedbackReadStatus)
+      .set({
+        isRead,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(feedbackReadStatus.userId, userId),
+          eq(feedbackReadStatus.cafeId, cafeId),
+          eq(feedbackReadStatus.logId, logId)
+        )
+      );
+  } else {
+    // Insert
+    await db.insert(feedbackReadStatus).values({
+      userId,
+      cafeId,
+      logId,
+      isRead,
+    });
+  }
+}
+
+export async function setMultipleFeedbackReadStatus(
+  userId: number,
+  cafeId: number,
+  logIds: number[],
+  isRead: boolean
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const { feedbackReadStatus } = await import("../drizzle/schema");
+
+  // Get existing records
+  const existing = await db
+    .select()
+    .from(feedbackReadStatus)
+    .where(
+      and(
+        eq(feedbackReadStatus.userId, userId),
+        eq(feedbackReadStatus.cafeId, cafeId),
+        inArray(feedbackReadStatus.logId, logIds)
+      )
+    );
+
+  const existingLogIds = new Set(existing.map((r) => r.logId));
+  const now = new Date();
+
+  // Update existing records
+  if (existingLogIds.size > 0) {
+    await db
+      .update(feedbackReadStatus)
+      .set({
+        isRead,
+        updatedAt: now,
+      })
+      .where(
+        and(
+          eq(feedbackReadStatus.userId, userId),
+          eq(feedbackReadStatus.cafeId, cafeId),
+          inArray(feedbackReadStatus.logId, Array.from(existingLogIds))
+        )
+      );
+  }
+
+  // Insert new records
+  const newLogIds = logIds.filter((id) => !existingLogIds.has(id));
+  if (newLogIds.length > 0) {
+    await db.insert(feedbackReadStatus).values(
+      newLogIds.map((logId) => ({
+        userId,
+        cafeId,
+        logId,
+        isRead,
+      }))
+    );
+  }
 }

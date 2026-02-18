@@ -1,9 +1,10 @@
-import { COOKIE_NAME } from "@shared/const";
+import { COOKIE_NAME, MAX_FEEDBACK_LIMIT, DEFAULT_FEEDBACK_LIMIT, FEEDBACK_READ_STATUS_ALL } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 //import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { adminProcedure, protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { z } from "zod";
+import type { FeedbackLog } from "@shared/feedback-types";
 import {
   getUserCafes,
   getCafeById,
@@ -2232,6 +2233,242 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         return deleteUser(input.id, ctx.user.id);
       }),
+  }),
+
+  // === Feedback Management ===
+  feedbacks: router({
+    list: protectedProcedure
+      .input(
+        z.object({
+          cafeDbId: z.number(),
+          read: z.number().optional(),
+          page: z.number().optional(),
+          limit: z.number().optional(),
+        })
+      )
+      .query(async ({ ctx, input }) => {
+        const cafe = await getCafeById(input.cafeDbId, ctx.user.id);
+        if (!cafe) {
+          throw new Error("Cafe not found");
+        }
+
+        const response = await icafe.getFeedbackLogs(
+          {
+            cafeId: cafe.cafeId,
+            apiKey: cafe.apiKey,
+          },
+          {
+            read: input.read,
+            page: input.page,
+            limit: input.limit,
+          }
+        );
+
+        return response;
+      }),
+
+    allCafes: protectedProcedure
+      .input(
+        z.object({
+          // Limit per cafe to prevent performance issues with large feedback volumes
+          limit: z.number().min(1).max(MAX_FEEDBACK_LIMIT).default(DEFAULT_FEEDBACK_LIMIT),
+          // Optional date range for filtering feedbacks (format: YYYY-MM-DD)
+          // If not provided, fetches all available feedbacks (no date restriction)
+          dateStart: z.string().optional(),
+          dateEnd: z.string().optional(),
+        })
+      )
+      .query(async ({ ctx, input }) => {
+        const cafes = await getAllUserCafesWithKeys(ctx.user.id);
+        
+        const feedbackPromises = cafes.map(async (cafe) => {
+          try {
+            // Skip cafes without API keys
+            if (!cafe.apiKey) {
+              console.warn(`[Feedback] Skipping cafe ${cafe.name} (${cafe.cafeId}): No API key configured`);
+              return {
+                cafeDbId: cafe.id,
+                cafeName: cafe.name,
+                cafeId: cafe.cafeId,
+                feedbacks: [],
+                error: "No API key configured for this cafe. Please add an API key in cafe settings.",
+              };
+            }
+            
+            // Fetch all pages of feedbacks
+            let allFeedbacks: FeedbackLog[] = [];
+            let currentPage = 1;
+            let totalPages = 1;
+            const MAX_PAGES = 100; // Safety limit to prevent infinite loops
+            
+            do {
+              const response = await icafe.getFeedbackLogs(
+                {
+                  cafeId: cafe.cafeId,
+                  apiKey: cafe.apiKey,
+                },
+                {
+                  read: FEEDBACK_READ_STATUS_ALL, // Get all feedbacks
+                  page: currentPage,
+                  limit: input.limit,
+                  date_start: input.dateStart,
+                  date_end: input.dateEnd,
+                }
+              );
+
+              // Check if the response indicates an error
+              if (response.code && response.code >= 400) {
+                const errorDetails = response.code === 401 
+                  ? "Authentication failed - API key may not have Feedback Logs permission enabled in iCafe Cloud Manager"
+                  : response.message;
+                console.error(`[Feedback] API error for cafe ${cafe.name} (${cafe.cafeId}): ${response.code} - ${errorDetails}`);
+                // Return empty feedbacks for this cafe with error logged and returned to client
+                return {
+                  cafeDbId: cafe.id,
+                  cafeName: cafe.name,
+                  cafeId: cafe.cafeId,
+                  feedbacks: [],
+                  error: errorDetails,
+                };
+              }
+
+              // Extract feedbacks from the nested response structure
+              // The API returns: {code: 200, message: "success", data: {log_list: [...], paging_info: {...}}}
+              let pageFeedbacks: FeedbackLog[] = [];
+              if (response.data && typeof response.data === 'object' && 'log_list' in response.data) {
+                const logList = (response.data as any).log_list;
+                if (Array.isArray(logList)) {
+                  // Filter to only include FEEDBACK events (exclude RESTOCKNOTIFY, etc.)
+                  pageFeedbacks = logList.filter((log: any) => log.log_event === 'FEEDBACK');
+                }
+                
+                // Check for pagination info
+                const pagingInfo = (response.data as any).paging_info;
+                if (pagingInfo && typeof pagingInfo === 'object') {
+                  totalPages = pagingInfo.pages || 1;
+                  if (currentPage === 1) {
+                    console.log(`[Feedback] Cafe ${cafe.name} (${cafe.cafeId}): ${pagingInfo.total_records} total records across ${totalPages} pages`);
+                  }
+                }
+              } else if (Array.isArray(response.data)) {
+                // Fallback: if data is directly an array (old API format?)
+                pageFeedbacks = response.data.filter((log: any) => log.log_event === 'FEEDBACK');
+              } else {
+                console.warn(`[Feedback] Unexpected response.data structure for cafe ${cafe.name} (${cafe.cafeId}):`, 
+                  typeof response.data);
+                // Safely log the data
+                try {
+                  const dataStr = JSON.stringify(response.data);
+                  console.warn(`[Feedback] Data content:`, dataStr?.substring(0, 200) ?? 'Unable to serialize');
+                } catch (e) {
+                  console.warn(`[Feedback] Could not stringify response.data (circular or error)`);
+                }
+              }
+              
+              // Add this page's feedbacks to the total
+              allFeedbacks.push(...pageFeedbacks);
+              
+              if (currentPage === 1 && totalPages > 1) {
+                console.log(`[Feedback] Fetching page ${currentPage}/${totalPages} for cafe ${cafe.name}, got ${pageFeedbacks.length} feedbacks`);
+              } else if (totalPages > 1) {
+                console.log(`[Feedback] Fetching page ${currentPage}/${totalPages} for cafe ${cafe.name}, got ${pageFeedbacks.length} feedbacks`);
+              }
+              
+              currentPage++;
+              
+              // Safety check: prevent infinite loops
+              if (currentPage > MAX_PAGES) {
+                console.warn(`[Feedback] Reached maximum page limit (${MAX_PAGES}) for cafe ${cafe.name}`);
+                break;
+              }
+              
+            } while (currentPage <= totalPages);
+            
+            console.log(`[Feedback] Total: Filtered ${allFeedbacks.length} feedback(s) from ${totalPages} page(s) for cafe ${cafe.name} (${cafe.cafeId})`);
+
+            return {
+              cafeDbId: cafe.id,
+              cafeName: cafe.name,
+              cafeId: cafe.cafeId,
+              feedbacks: allFeedbacks,
+            };
+          } catch (error) {
+            console.error(`[Feedback] Exception for cafe ${cafe.name} (${cafe.cafeId}):`, error);
+            return {
+              cafeDbId: cafe.id,
+              cafeName: cafe.name,
+              cafeId: cafe.cafeId,
+              feedbacks: [],
+              error: error instanceof Error ? error.message : 'Unknown error',
+            };
+          }
+        });
+
+        // Use Promise.allSettled to handle partial failures gracefully
+        const results = await Promise.allSettled(feedbackPromises);
+        
+        // Return only successful results, filtering out failed cafe requests
+        const finalResults = results
+          .filter((result): result is PromiseFulfilledResult<{
+            cafeDbId: number;
+            cafeName: string;
+            cafeId: string;
+            feedbacks: FeedbackLog[];
+            error?: string;
+          }> => result.status === 'fulfilled')
+          .map(result => result.value);
+        
+        // Debug logging: Show summary of what we're returning
+        console.log(`[Feedback] Returning ${finalResults.length} cafe(s) with total ${finalResults.reduce((sum, cafe) => sum + cafe.feedbacks.length, 0)} feedback(s)`);
+        finalResults.forEach(cafe => {
+          console.log(`[Feedback]   - ${cafe.cafeName}: ${cafe.feedbacks.length} feedback(s)${cafe.error ? ` (error: ${cafe.error})` : ''}`);
+        });
+        
+        return finalResults;
+      }),
+
+    markAsRead: protectedProcedure
+      .input(
+        z.object({
+          cafeDbId: z.number(),
+          logId: z.number(),
+          isRead: z.boolean(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const { setFeedbackReadStatus } = await import("./db");
+        await setFeedbackReadStatus(
+          ctx.user.id,
+          input.cafeDbId,
+          input.logId,
+          input.isRead
+        );
+        return { success: true };
+      }),
+
+    markAllAsRead: protectedProcedure
+      .input(
+        z.object({
+          cafeDbId: z.number(),
+          logIds: z.array(z.number()),
+          isRead: z.boolean(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const { setMultipleFeedbackReadStatus } = await import("./db");
+        await setMultipleFeedbackReadStatus(
+          ctx.user.id,
+          input.cafeDbId,
+          input.logIds,
+          input.isRead
+        );
+        return { success: true, count: input.logIds.length };
+      }),
+
+    getReadStatuses: protectedProcedure.query(async ({ ctx }) => {
+      const { getUserFeedbackReadStatuses } = await import("./db");
+      return getUserFeedbackReadStatuses(ctx.user.id);
+    }),
   }),
 });
 

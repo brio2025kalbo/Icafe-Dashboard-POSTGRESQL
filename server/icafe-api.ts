@@ -2,7 +2,11 @@ import axios, { AxiosError } from "axios";
 import { Agent as HttpAgent } from "http";
 import { Agent as HttpsAgent } from "https";
 
-const ICAFE_BASE_URL = "https://api.icafecloud.com";
+// iCafe Cloud uses regional servers. Examples:
+// - as1.icafecloud.com = Asia Server 1
+// - api.icafecloud.com = Global/default
+// Configure via ICAFE_BASE_URL environment variable if needed
+const ICAFE_BASE_URL = process.env.ICAFE_BASE_URL || "https://as1.icafecloud.com";
 
 // Force IPv4 for iCafeCloud API requests to avoid IPv6 whitelist issues
 const httpsAgent = new HttpsAgent({
@@ -30,13 +34,27 @@ async function icafeRequest<T = unknown>(
 ): Promise<IcafeResponse<T>> {
   const url = `${ICAFE_BASE_URL}/api/v2/cafe/${options.cafeId}${path}`;
   console.log(`[iCafe API] ${method} ${url}`, queryParams ? `params: ${JSON.stringify(queryParams)}` : '');
+  
+  // Validate and trim API key to avoid whitespace issues
+  if (!options.apiKey) {
+    throw new Error("API key is required");
+  }
+  const apiKey = options.apiKey.trim();
+  if (!apiKey) {
+    throw new Error("API key cannot be empty");
+  }
+  
+  // Debug logging (only in development, without exposing key content)
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`[iCafe API] API Key present: ${apiKey.length > 0}, length: ${apiKey.length}`);
+  }
 
   try {
     const response = await axios({
       method,
       url,
       headers: {
-        Authorization: `Bearer ${options.apiKey}`,
+        Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
       data: body,
@@ -45,6 +63,21 @@ async function icafeRequest<T = unknown>(
       httpsAgent, // Use IPv4-only agent
     });
     console.log(`[iCafe API] Response ${response.status}:`, JSON.stringify(response.data).substring(0, 2000));
+    
+    // iCafeCloud API returns HTTP 200 with error codes in the JSON body
+    // Check if the response contains an error code (400+)
+    const responseData = response.data;
+    if (responseData && typeof responseData === 'object' && 'code' in responseData) {
+      const errorCode = responseData.code as number;
+      if (errorCode >= 400) {
+        const errorMessage = ('message' in responseData && typeof responseData.message === 'string')
+          ? responseData.message
+          : 'Unknown error';
+        console.error(`[iCafe API] Error code ${errorCode} in response body: ${errorMessage}`);
+        return { code: errorCode, message: errorMessage };
+      }
+    }
+    
     return response.data;
   } catch (error) {
     if (error instanceof AxiosError) {
@@ -306,6 +339,27 @@ export function getBillingLogs(
   if (params?.log_type) qp.log_type = params.log_type;
 
   return icafeRequest("GET", "/billingLogs", opts, undefined, qp);
+}
+
+export function getFeedbackLogs(
+  opts: IcafeApiOptions,
+  params?: {
+    read?: number;
+    page?: number;
+    limit?: number;
+    date_start?: string;
+    date_end?: string;
+  }
+) {
+  const qp: Record<string, string> = {};
+  
+  if (params?.read !== undefined) qp.read = String(params.read);
+  if (params?.page) qp.page = String(params.page);
+  if (params?.limit) qp.limit = String(params.limit);
+  if (params?.date_start) qp.date_start = params.date_start;
+  if (params?.date_end) qp.date_end = params.date_end;
+
+  return icafeRequest("GET", "/billingLogs/action/feedbackLogs", opts, undefined, qp);
 }
 
 
