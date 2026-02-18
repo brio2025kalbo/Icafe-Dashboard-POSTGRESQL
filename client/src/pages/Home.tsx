@@ -108,7 +108,7 @@ export default function Home() {
         const isRead = readStatusMap.get(key) || false;
         if (!isRead) {
           unreadCount++;
-          if (unreadFeedbacks.length < MAX_TOAST_FEEDBACKS) { // Collect up to MAX_TOAST_FEEDBACKS for toast display
+          if (unreadFeedbacks.length < MAX_TOAST_FEEDBACKS) {
             unreadFeedbacks.push({
               cafeName: cafeFeedback.cafeName,
               subject: feedback.subject,

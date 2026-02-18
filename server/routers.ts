@@ -2274,12 +2274,12 @@ export const appRouter = router({
       .input(
         z.object({
           // Limit per cafe to prevent performance issues with large feedback volumes
-          limit: z.number().min(1).max(MAX_FEEDBACK_LIMIT).optional().default(DEFAULT_FEEDBACK_LIMIT),
-        }).optional()
+          limit: z.number().min(1).max(MAX_FEEDBACK_LIMIT).default(DEFAULT_FEEDBACK_LIMIT),
+        })
       )
       .query(async ({ ctx, input }) => {
         const cafes = await getUserCafes(ctx.user.id);
-        const limit = input?.limit ?? DEFAULT_FEEDBACK_LIMIT;
+        const limit = input.limit;
         
         const feedbackPromises = cafes.map(async (cafe) => {
           const response = await icafe.getFeedbackLogs(

@@ -69,6 +69,11 @@ export default function Feedbacks() {
     return allCafeFeedbacks;
   }, [allCafeFeedbacks, selectedCafeId]);
 
+  // Calculate total feedback count
+  const totalFeedbackCount = useMemo(() => {
+    return filteredFeedbacks.reduce((acc, cf) => acc + cf.feedbacks.length, 0);
+  }, [filteredFeedbacks]);
+
   // Calculate unread counts per cafe
   const unreadCounts = useMemo(() => {
     const counts = new Map<number, number>();
@@ -134,7 +139,7 @@ export default function Feedbacks() {
         <h1 className="text-3xl font-bold">Feedbacks</h1>
         <div className="flex items-center gap-2">
           <Badge variant="outline">
-            Total: {filteredFeedbacks.reduce((acc, cf) => acc + cf.feedbacks.length, 0)}
+            Total: {totalFeedbackCount}
           </Badge>
           <Badge variant="destructive">
             Unread: {Array.from(unreadCounts.values()).reduce((a, b) => a + b, 0)}
