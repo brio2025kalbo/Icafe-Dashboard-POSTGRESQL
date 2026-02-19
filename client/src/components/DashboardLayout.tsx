@@ -131,11 +131,13 @@ function DashboardLayoutContent({
   const isMobile = useIsMobile();
 
   // Fetch feedbacks and read statuses to calculate unread count
+  // Only fetch when user is on the feedbacks page
+  const isOnFeedbacksPage = location === "/feedbacks";
   const { data: allCafeFeedbacks } = trpc.feedbacks.allCafes.useQuery(
     { limit: DEFAULT_FEEDBACK_LIMIT },
     {
       refetchInterval: 60000, // Refetch every minute
-      enabled: !!user, // Only fetch if user is logged in
+      enabled: !!user && isOnFeedbacksPage, // Only fetch if user is logged in and on feedbacks page
     }
   );
 
@@ -143,7 +145,7 @@ function DashboardLayoutContent({
     undefined,
     {
       refetchInterval: 60000,
-      enabled: !!user,
+      enabled: !!user && isOnFeedbacksPage, // Only fetch if user is logged in and on feedbacks page
     }
   );
 
