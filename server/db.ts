@@ -411,21 +411,25 @@ export async function addCafe(
   }
   const encrypted = encrypt(trimmedApiKey);
 
-  // Insert the cafe (userId kept for backward compatibility but will be deprecated)
-  const result = await db.insert(cafes).values({
+  // Insert cafe and RETURN id (PostgreSQL)
+  const result = await db
+  .insert(cafes)
+  .values({
     userId,
     name: data.name,
     cafeId: data.cafeId,
     apiKeyEncrypted: encrypted,
     location: data.location || null,
     timezone: data.timezone || null,
-  });
+  })
+  .returning({ id: cafes.id });
 
-  // Get the inserted cafe ID - check for valid insertId
-  if (result[0]?.insertId === undefined || result[0]?.insertId === null) {
-    throw new Error("Failed to get inserted cafe ID");
+  // Validate result
+  if (!result.length || !result[0].id) {
+  throw new Error("Failed to get inserted cafe ID");
   }
-  const cafeDbId = Number(result[0].insertId);
+
+  const cafeDbId = result[0].id;
 
   // Create junction table entry with "owner" role
   await db.insert(userCafes).values({
