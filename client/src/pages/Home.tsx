@@ -76,11 +76,12 @@ export default function Home() {
   const prevUnreadCountRef = useRef<number>(0);
 
   // Fetch feedbacks and read statuses for toast notifications
+  // Disabled to prevent fetching on home page - feedbacks only load when visiting /feedbacks page
   const { data: allCafeFeedbacks } = trpc.feedbacks.allCafes.useQuery(
     { limit: DEFAULT_FEEDBACK_LIMIT },
     {
       refetchInterval: 60000, // Check every minute
-      enabled: cafes.length > 0,
+      enabled: false, // Disabled - only fetch when on /feedbacks page
     }
   );
 
@@ -88,7 +89,7 @@ export default function Home() {
     undefined,
     {
       refetchInterval: 60000,
-      enabled: cafes.length > 0,
+      enabled: false, // Disabled - only fetch when on /feedbacks page
     }
   );
 
