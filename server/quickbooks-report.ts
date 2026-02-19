@@ -6,7 +6,7 @@ import * as icafe from "./icafe-api";
 function getBusinessDayBoundary(businessDate: string): { startTime: string; endTime: string } {
   // Business day starts at 06:00 on businessDate and ends at 05:59 the next day
   return {
-    startTime: "06:00",
+    startTime: "00:00",
     endTime: "05:59",
   };
 }
