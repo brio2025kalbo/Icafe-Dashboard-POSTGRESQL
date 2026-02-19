@@ -1,4 +1,5 @@
 import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
+import * as crypto from "crypto";
 import type { Express, Request, Response } from "express";
 import * as db from "../db";
 import { getSessionCookieOptions } from "./cookies";
@@ -22,10 +23,15 @@ export function registerAuthRoutes(app: Express) {
         return;
       }
 
+      // Create a unique session token and store it to enforce single active session
+      const sessionId = crypto.randomUUID();
+      await db.setActiveSessionToken(user.id, sessionId);
+
       // Create session token using user ID as identifier
       const sessionToken = await sdk.createSessionToken(`local:${user.id}`, {
         name: user.name || username,
         expiresInMs: ONE_YEAR_MS,
+        sessionToken: sessionId,
       });
 
       const cookieOptions = getSessionCookieOptions(req);
@@ -85,9 +91,14 @@ export function registerAuthRoutes(app: Express) {
         throw new Error("User creation failed");
       }
 
+      // Create a unique session token and store it to enforce single active session
+      const sessionId = crypto.randomUUID();
+      await db.setActiveSessionToken(user.id, sessionId);
+
       const sessionToken = await sdk.createSessionToken(`local:${user.id}`, {
         name: user.name || username,
         expiresInMs: ONE_YEAR_MS,
+        sessionToken: sessionId,
       });
 
       const cookieOptions = getSessionCookieOptions(req);

@@ -22,6 +22,7 @@ export type SessionPayload = {
   openId: string;
   appId: string;
   name: string;
+  sessionToken?: string;
 };
 
 const EXCHANGE_TOKEN_PATH = `/webdev.v1.WebDevAuthPublicService/ExchangeToken`;
@@ -166,13 +167,14 @@ class SDKServer {
    */
   async createSessionToken(
     openId: string,
-    options: { expiresInMs?: number; name?: string } = {}
+    options: { expiresInMs?: number; name?: string; sessionToken?: string } = {}
   ): Promise<string> {
     return this.signSession(
       {
         openId,
         appId: ENV.appId,
         name: options.name || "",
+        sessionToken: options.sessionToken,
       },
       options
     );
@@ -191,6 +193,7 @@ class SDKServer {
       openId: payload.openId,
       appId: payload.appId,
       name: payload.name,
+      ...(payload.sessionToken ? { sessionToken: payload.sessionToken } : {}),
     })
       .setProtectedHeader({ alg: "HS256", typ: "JWT" })
       .setExpirationTime(expirationSeconds)
@@ -199,7 +202,7 @@ class SDKServer {
 
   async verifySession(
     cookieValue: string | undefined | null
-  ): Promise<{ openId: string; appId: string; name: string } | null> {
+  ): Promise<{ openId: string; appId: string; name: string; sessionToken?: string } | null> {
     if (!cookieValue) {
       console.warn("[Auth] Missing session cookie");
       return null;
@@ -210,7 +213,7 @@ class SDKServer {
       const { payload } = await jwtVerify(cookieValue, secretKey, {
         algorithms: ["HS256"],
       });
-      const { openId, appId, name } = payload as Record<string, unknown>;
+      const { openId, appId, name, sessionToken } = payload as Record<string, unknown>;
 
       if (
         !isNonEmptyString(openId) ||
@@ -225,6 +228,7 @@ class SDKServer {
         openId,
         appId,
         name,
+        sessionToken: isNonEmptyString(sessionToken) ? sessionToken : undefined,
       };
     } catch (error) {
       console.warn("[Auth] Session verification failed", String(error));
@@ -277,6 +281,25 @@ class SDKServer {
       if (!user) {
         throw ForbiddenError("User not found");
       }
+
+      // Enforce single active session per local user.
+      // If the DB has an activeSessionToken set, the JWT must carry the same token.
+      // An old JWT without a sessionToken is rejected once a newer session exists.
+      const jwtSessionToken = session.sessionToken;
+      const activeToken = user.activeSessionToken;
+
+      if (activeToken !== null && activeToken !== undefined) {
+        // A session token is on record – the JWT must match it exactly.
+        if (jwtSessionToken !== activeToken) {
+          throw ForbiddenError("Session invalidated: another session is active");
+        }
+      } else if (jwtSessionToken !== undefined) {
+        // JWT carries a session token but nothing is stored in the DB.
+        // This happens after a logout clears the stored token – reject so the
+        // now-expired cookie cannot be reused.
+        throw ForbiddenError("Session invalidated: user has logged out");
+      }
+      // If both are absent (old JWT + fresh account) we allow for backward-compat.
     } else {
       // OAuth user flow
       user = await db.getUserByOpenId(sessionUserId);
