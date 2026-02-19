@@ -29,6 +29,8 @@ export const users = pgTable("users", {
 
   role: roleEnum("role").default("user").notNull(),
 
+  activeSessionToken: varchar("activeSessionToken", { length: 64 }),
+
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),

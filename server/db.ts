@@ -186,9 +186,22 @@ export async function createLocalUser(data: {
   return result;
 }
 
+export async function setActiveSessionToken(userId: number, token: string | null) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot set session token: database not available");
+    return;
+  }
+
+  await db
+    .update(users)
+    .set({ activeSessionToken: token })
+    .where(eq(users.id, userId));
+}
+
 export async function authenticateLocalUser(username: string, password: string) {
   const user = await getUserByUsername(username);
-  
+
   if (!user || !user.password) {
     return null;
   }
