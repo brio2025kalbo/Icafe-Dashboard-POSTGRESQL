@@ -80,7 +80,6 @@ export default function Home() {
   const { data: allCafeFeedbacks } = trpc.feedbacks.allCafes.useQuery(
     { limit: DEFAULT_FEEDBACK_LIMIT },
     {
-      refetchInterval: 60000, // Check every minute
       enabled: false, // Disabled - only fetch when on /feedbacks page
     }
   );
@@ -88,7 +87,6 @@ export default function Home() {
   const { data: readStatuses = [] } = trpc.feedbacks.getReadStatuses.useQuery(
     undefined,
     {
-      refetchInterval: 60000,
       enabled: false, // Disabled - only fetch when on /feedbacks page
     }
   );
